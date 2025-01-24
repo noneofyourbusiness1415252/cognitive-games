@@ -1,7 +1,7 @@
 [package]
-name = "{{project-name}}"
+name = "cognitive-games"
 version = "0.1.0"
-authors = ["{{authors}}"]
+authors = ["Umar Sharief"]
 edition = "2018"
 
 [lib]
@@ -18,6 +18,19 @@ wasm-bindgen = "0.2.84"
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
 # code size when deploying.
 console_error_panic_hook = { version = "0.1.7", optional = true }
+js-sys = "0.3.77"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Window",
+    "MouseEvent",
+    "DomTokenList",
+    "console",
+    "HtmlDialogElement",
+    "CustomEvent",
+    "CustomEventInit",
+]}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
