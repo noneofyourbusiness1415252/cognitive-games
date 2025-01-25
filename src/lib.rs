@@ -93,36 +93,55 @@ impl MazeGame {
     }
     fn create_maze(size: usize, document: Document) -> MazeGame {
         let mut walls = vec![false; size * size * 4]; // Start with no walls
-
         // Add random walls
         for i in 0..walls.len() {
             walls[i] = Math::random() < 0.5;
         }
-        // Generate key position that's accessible without going through door
-        let key_position = loop {
-            let key_x = (Math::random() * (size as f64)).floor() as usize;
-            let key_y = (Math::random() * (size as f64)).floor() as usize;
-            let pos = (key_x, key_y);
 
-            if pos != (0, 0) {
-                break pos;
-            }
-        };
-
-        // Modify door position generation to ensure it's not accessible initially
-        let door_position = loop {
-            let door_x = (Math::random() * (size as f64)).floor() as usize;
-            let door_y = (Math::random() * (size as f64)).floor() as usize;
-            let pos = (door_x, door_y);
-
-            if pos != (0, 0) && pos != key_position {
-                // Make door position initially inaccessible
-                let wall_idx = (door_y * size + door_x) * 4;
-                for i in 0..4 {
-                    walls[wall_idx + i] = true;
+        let (waypoint1, key_position, waypoint2, door_position) = if size == 2 {
+            let key_pos = loop {
+                let pos = ((Math::random() * 2.0).floor() as usize, (Math::random() * 2.0).floor() as usize);
+                if pos != (0, 0) {
+                    break pos;
+                };
+            };
+            // Get random non-start, non-key position for door
+            let door_pos = loop {
+                let pos = ((Math::random() * 2.0).floor() as usize, (Math::random() * 2.0).floor() as usize);
+                if pos != (0, 0) && pos != key_pos {
+                    break pos;
                 }
-                break pos;
-            }
+            };            
+            (key_pos, key_pos, door_pos, door_pos)
+        } else {
+            let (mut key_pos, mut door_pos);
+            loop {
+                key_pos = (
+                    ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
+                    ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
+                );
+                
+                door_pos = (
+                    ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
+                    ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
+                );
+    
+                if key_pos != door_pos && key_pos != (0, 0) && door_pos != (0, 0) {
+                    break;
+                }
+            };
+            (
+                (
+                    (Math::random() * (size as f64)).floor() as usize,
+                    (Math::random() * (size as f64)).floor() as usize,
+                ),
+                key_pos,
+                (
+                    (Math::random() * (size as f64)).floor() as usize,
+                    (Math::random() * (size as f64)).floor() as usize,
+                ),
+                door_pos,
+            )
         };
 
         let mut game = MazeGame {
@@ -148,10 +167,10 @@ impl MazeGame {
             size: usize,
         ) {
             let mut current = from;
+            // Calculate minimum required path length (Manhattan distance * 1.5)
             while current != to {
                 let dx = (to.0 as i32 - current.0 as i32).signum();
                 let dy = (to.1 as i32 - current.1 as i32).signum();
-
                 // Clear both current cell's wall and neighbor's wall
                 if dx != 0 {
                     let wall_idx = (current.1 * size + current.0) * 4 + if dx > 0 { 1 } else { 3 };
@@ -208,11 +227,11 @@ impl MazeGame {
                 }
             }
         }
-
-        // Clear paths with extra space around them
-        clear_path(&mut game.walls, (0, 0), key_position, size);
-        clear_path(&mut game.walls, key_position, door_position, size);
-
+        // Create path through waypoints
+        clear_path(&mut game.walls, (0, 0), waypoint1, size);
+        clear_path(&mut game.walls, waypoint1, key_position, size);
+        clear_path(&mut game.walls, key_position, waypoint2, size);
+        clear_path(&mut game.walls, waypoint2, door_position, size);
         game.visited.insert((0, 0));
         game
     }
