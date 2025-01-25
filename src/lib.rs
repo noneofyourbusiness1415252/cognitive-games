@@ -2,7 +2,7 @@ use js_sys::Math;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::prelude::*;
-use web_sys::{console, Document, Element, HtmlElement,};
+use web_sys::{console, Document, Element, HtmlElement};
 #[wasm_bindgen(start)]
 pub fn start() {
     console_error_panic_hook::set_once();
@@ -42,34 +42,28 @@ fn get_document() -> Document {
 impl MazeGame {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<MazeGame, JsValue> {
-        console::log_1(&"Creating new game".into());
-        let window = web_sys::window().expect("no global window exists");
-        let document = window.document().expect("no document exists");
-        let storage = window.local_storage()?.expect("no local storage exists");
-        
-        // Try to load saved state
-        let mut game = if let Some(saved_state) = storage.get_item("maze_state")? {
-            let saved_time = storage.get_item("maze_time")?.unwrap_or_else(|| "0".to_string());
-            let last_save = saved_time.parse::<f64>().unwrap_or(0.0);
-            let now = js_sys::Date::now();
-            
-            // Check if more than 5 minutes (300000ms) have passed
-            if now - last_save > 300000.0 {
-                // Time expired, create new game but preserve level
-                let level = storage.get_item("maze_level")?.unwrap_or_else(|| "1".to_string());
-                let size = level.parse::<usize>().unwrap_or(2);
-                MazeGame::create_maze(size, document)
+        let document = get_document();
+        let storage = web_sys::window()
+            .expect("no global window exists")
+            .local_storage()?
+            .expect("no local storage");
+
+        let mut game = if let Some(state) = storage.get_item("maze_state")? {
+            let last_save = storage
+                .get_item("maze_time")?
+                .unwrap_or_else(|| "0".to_string())
+                .parse::<f64>()
+                .unwrap_or(0.0);
+
+            if js_sys::Date::now() - last_save > 300000.0 {
+                MazeGame::create_maze(2, document)
             } else {
-                // Parse saved state
-                let state: JsValue = js_sys::JSON::parse(&saved_state)?;
-                let game: MazeGame = serde_wasm_bindgen::from_value(state)?;
-                game
+                serde_wasm_bindgen::from_value(js_sys::JSON::parse(&state)?)?
             }
         } else {
-            // No saved state, start new game
             MazeGame::create_maze(2, document)
         };
-        
+
         game.render()?;
         game.start()?;
         Ok(game)
@@ -77,41 +71,47 @@ impl MazeGame {
     fn save_state(&self) -> Result<(), JsValue> {
         let window = web_sys::window().expect("no global window exists");
         let storage = window.local_storage()?.expect("no local storage exists");
-        
+
         // Save game state
         let state = serde_wasm_bindgen::to_value(&self)?;
         let state_json = js_sys::JSON::stringify(&state)?.as_string().unwrap();
         storage.set_item("maze_state", &state_json)?;
-        
+
         // Save current time
         storage.set_item("maze_time", &js_sys::Date::now().to_string())?;
-        
+
         // Save level separately
         storage.set_item("maze_level", &self.level.to_string())?;
-        
+
         Ok(())
     }
     fn create_maze(size: usize, document: Document) -> MazeGame {
         let mut walls = vec![false; size * size * 4]; // Start with no walls
-        // Add random walls
+                                                      // Add random walls
         for i in 0..walls.len() {
             walls[i] = Math::random() < 0.5;
         }
 
         let (waypoint1, key_position, waypoint2, door_position) = if size == 2 {
             let key_pos = loop {
-                let pos = ((Math::random() * 2.0).floor() as usize, (Math::random() * 2.0).floor() as usize);
+                let pos = (
+                    (Math::random() * 2.0).floor() as usize,
+                    (Math::random() * 2.0).floor() as usize,
+                );
                 if pos != (0, 0) {
                     break pos;
                 };
             };
             // Get random non-start, non-key position for door
             let door_pos = loop {
-                let pos = ((Math::random() * 2.0).floor() as usize, (Math::random() * 2.0).floor() as usize);
+                let pos = (
+                    (Math::random() * 2.0).floor() as usize,
+                    (Math::random() * 2.0).floor() as usize,
+                );
                 if pos != (0, 0) && pos != key_pos {
                     break pos;
                 }
-            };            
+            };
             (key_pos, key_pos, door_pos, door_pos)
         } else {
             let (mut key_pos, mut door_pos);
@@ -120,16 +120,16 @@ impl MazeGame {
                     ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
                     ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
                 );
-                
+
                 door_pos = (
                     ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
                     ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
                 );
-    
+
                 if key_pos != door_pos && key_pos != (0, 0) && door_pos != (0, 0) {
                     break;
                 }
-            };
+            }
             (
                 (
                     (Math::random() * (size as f64)).floor() as usize,
@@ -277,7 +277,7 @@ impl MazeGame {
                     let mut coords = coords.split(',');
                     let x = coords.next().unwrap().parse::<usize>().unwrap();
                     let y = coords.next().unwrap().parse::<usize>().unwrap();
-                    
+
                     // Add the try_move call and only render on valid moves
                     let result = game.try_move(x, y);
                     if result != 0 {
@@ -465,7 +465,7 @@ impl MazeGame {
         }
 
         let wall_idx = self.get_wall_index(self.current_position.0, self.current_position.1, x, y);
-        
+
         // Block access to door position if key not collected
         if (x, y) == self.door_position && !self.has_key {
             return 0;
