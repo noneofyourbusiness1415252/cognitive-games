@@ -1,0 +1,11 @@
+name = "wasm-pack-template"
+compatibility_date = "2024-01-25"
+
+[build]
+command = "curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && wasm-pack build --target web"
+output_directory = "pkg"name = "wasm-pack-template"
+compatibility_date = "2024-01-25"
+
+[build]
+command = "curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && wasm-pack build --target web"
+output_directory = "pkg"
