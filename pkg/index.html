@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>WASM Maze Game</title>
+    <style>
+        :root {
+            --cell-size: min(5vw, 3.75rem);
+            --bg-color: #1a1a1a;
+            --border-color: #333333;
+            --text-color: #808080;
+            --visited-color: #262626;
+            --current-color: #404040;
+            --chevron-color: #4d4d4d;
+            --key-color: #704214;
+            --door-color: #4a2308;
+        }
+      
+        /* Dark theme - pure black */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --border-color: #1a1a1a;
+                --text-color: #787878;
+                --visited-color: #0a0a0a;
+                --current-color: #1a1a1a;
+                --chevron-color: #404040;
+                --key-color: #8b6b43;
+                --door-color: #5c4423;
+            }
+        }
+    
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+    
+        .grid {
+            display: grid;
+            gap: 0.125rem;
+            margin: 1.25rem auto;
+        }
+    
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            font-size: calc(var(--cell-size) * 0.9);
+            border: 0.0625rem solid var(--border-color);
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+        }
+    
+        .visited {
+            background-color: var(--visited-color);
+        }
+    
+        .current {
+            background-color: var(--current-color);
+        }
+    
+        .chevron {
+            position: absolute;
+            color: var(--chevron-color);
+            font-size: calc(var(--cell-size) * 0.33);
+        }
+    
+        .chevron.up { top: 0.3125rem; }
+        .chevron.down { bottom: 0.3125rem; }
+        .chevron.left { left: 0.3125rem; }
+        .chevron.right { right: 0.3125rem; }
+    
+        .key {
+            color: var(--key-color);
+        }
+    
+        .door {
+            color: var(--door-color);
+        }
+    
+        #stats {
+            color: var(--text-color);
+            margin: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="stats">
+        Level: <span id="level">1</span> |
+        Completed: <span id="completed">0</span> |
+        Time: <span id="timer">5:00</span>
+    </div>
+    <div id="maze" class="grid"></div>
+    <script type="module">
+        import init from './cognitive_games.js';
+        init().catch(console.error);
+    </script>
+</body>
+
+</html>
