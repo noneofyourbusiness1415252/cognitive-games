@@ -3,11 +3,18 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::prelude::*;
 use web_sys::{console, Document, Element, HtmlElement};
+
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 #[wasm_bindgen(start)]
-pub fn start() {
+pub fn main_js() -> Result<(), JsValue> {
+    #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
-    let game = MazeGame::new().expect("Failed to create game");
-    game.render().expect("Failed to render game");
+    let game = MazeGame::new()?;
+    game.render()?;
+    Ok(())
 }
 #[wasm_bindgen]
 #[derive(Clone, Serialize, Deserialize)]
@@ -537,5 +544,4 @@ impl MazeGame {
         self.has_key = false;
         self.render().expect("Failed to render position reset");
     }
-    // Additional helper methods...
 }
