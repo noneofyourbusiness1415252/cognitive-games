@@ -13,9 +13,14 @@ export default {
   devServer: {
     static: "dist",
     open: true,
+    port: 80,
   },
   plugins: [
-    new CopyPlugin(["static"]),
+    new CopyPlugin({
+      patterns: [
+        { from: "static" },
+      ]
+    }),
     new WasmPackPlugin({
       crateDirectory: ".",
     }),

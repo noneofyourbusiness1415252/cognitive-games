@@ -17,7 +17,7 @@
             --key-color: #704214;
             --door-color: #4a2308;
         }
-      
+
         /* Dark theme - pure black */
         @media (prefers-color-scheme: dark) {
             :root {
@@ -31,18 +31,21 @@
                 --door-color: #5c4423;
             }
         }
-    
+
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
         }
-    
+
+        /* Replace the existing grid and pointer styles with: */
+        /* Replace the existing grid and pointer styles with: */
         .grid {
             display: grid;
-            gap: 0.125rem;
+            gap: 0;
+            /* Remove gap between cells */
             margin: 1.25rem auto;
         }
-    
+
         .cell {
             width: var(--cell-size);
             height: var(--cell-size);
@@ -55,34 +58,65 @@
             position: relative;
             cursor: pointer;
         }
-    
+
         .visited {
             background-color: var(--visited-color);
         }
-    
+
         .current {
             background-color: var(--current-color);
         }
-    
-        .chevron {
+
+        .pointer {
             position: absolute;
+            font-size: calc(var(--cell-size) * 0.4);
+            line-height: 1;
             color: var(--chevron-color);
-            font-size: calc(var(--cell-size) * 0.33);
+            transform-origin: center;
+            pointer-events: none;
+            z-index: 1;
         }
-    
-        .chevron.up { top: 0.3125rem; }
-        .chevron.down { bottom: 0.3125rem; }
-        .chevron.left { left: 0.3125rem; }
-        .chevron.right { right: 0.3125rem; }
-    
+
+        .pointer.right {
+            transform: rotate(90deg);
+            left: calc(100%);
+            /* Align with border */
+            top: 50%;
+            translate: 0 -50%;
+        }
+
+        .pointer.left {
+            transform: rotate(-90deg);
+            right: calc(100%);
+            /* Align with border */
+            top: 50%;
+            translate: 0 -50%;
+        }
+
+        .pointer.down {
+            transform: rotate(180deg);
+            top: calc(100%);
+            /* Align with border */
+            left: 50%;
+            translate: -50% 0;
+        }
+
+        .pointer.up {
+            transform: rotate(0deg);
+            bottom: calc(100%);
+            /* Align with border */
+            left: 50%;
+            translate: -50% 0;
+        }
+
         .key {
             color: var(--key-color);
         }
-    
+
         .door {
             color: var(--door-color);
         }
-    
+
         #stats {
             color: var(--text-color);
             margin: 1rem;

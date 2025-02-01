@@ -371,6 +371,26 @@ impl MazeGame {
         }
         if (x, y) == self.current_position {
             cell.class_list().add_1("current")?;
+            for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)].iter() {
+                let next_x = (x as i32 + dx) as usize;
+                let next_y = (y as i32 + dy) as usize;
+                
+                // Check if the adjacent cell is within bounds and accessible
+                if next_x < self.size && next_y < self.size && self.is_adjacent(next_x, next_y) {
+                    let pointer = self.document.create_element("span")?;
+                    pointer.set_class_name("pointer");
+                    let direction = match (*dx, *dy) {
+                        (1, 0) => "right",
+                        (-1, 0) => "left",
+                        (0, 1) => "down",
+                        (0, -1) => "up",
+                        _ => unreachable!(),
+                    };
+                    pointer.class_list().add_1(direction)?;
+                    pointer.set_text_content(Some("⏶"));
+                    cell.append_child(&pointer)?;
+                }
+            }
         }
 
         // Add key and door symbols - only one instance of the key should exist
@@ -381,26 +401,6 @@ impl MazeGame {
         } else if (x, y) == self.door_position {
             cell.set_inner_html("🚪");
         }
-
-        // Add chevrons for adjacent cells
-        if self.is_adjacent(x, y) {
-            let chevron = self.document.create_element("span")?;
-            chevron.set_class_name("chevron");
-            let direction = match (
-                x as i32 - self.current_position.0 as i32,
-                y as i32 - self.current_position.1 as i32,
-            ) {
-                (1, 0) => "right",
-                (-1, 0) => "left",
-                (0, 1) => "down",
-                (0, -1) => "up",
-                _ => unreachable!(),
-            };
-            chevron.class_list().add_1(direction)?;
-            chevron.set_text_content(Some("›"));
-            cell.append_child(&chevron)?;
-        }
-
         let x = x.clone();
         let y = y.clone();
         let click_callback = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
