@@ -44,6 +44,8 @@
             gap: 0;
             /* Remove gap between cells */
             margin: 1.25rem auto;
+            position: relative;
+            clip-path: inset(0);
         }
 
         .cell {
@@ -67,46 +69,44 @@
             background-color: var(--current-color);
         }
 
-        .pointer {
+        .current::before,
+        .current::after,
+        .current > span::before,
+        .current > span::after {
+            content: "⏶";
             position: absolute;
             font-size: calc(var(--cell-size) * 0.4);
-            line-height: 1;
             color: var(--chevron-color);
-            transform-origin: center;
-            pointer-events: none;
+            line-height: 1;
             z-index: 1;
         }
 
-        .pointer.right {
-            transform: rotate(90deg);
-            left: calc(100%);
-            /* Align with border */
-            top: 50%;
-            translate: 0 -50%;
-        }
-
-        .pointer.left {
-            transform: rotate(-90deg);
-            right: calc(100%);
-            /* Align with border */
-            top: 50%;
-            translate: 0 -50%;
-        }
-
-        .pointer.down {
-            transform: rotate(180deg);
-            top: calc(100%);
-            /* Align with border */
+        .current::before {
+            /* up */
+            bottom: 100%;
             left: 50%;
-            translate: -50% 0;
+            transform: translateX(-50%);
         }
 
-        .pointer.up {
-            transform: rotate(0deg);
-            bottom: calc(100%);
-            /* Align with border */
+        .current::after {
+            /* down */
+            top: 100%;
             left: 50%;
-            translate: -50% 0;
+            transform: translateX(-50%) rotate(180deg);
+        }
+
+        .current > span::before {
+            /* left */
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+        }
+
+        .current > span::after {
+            /* right */
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
         }
 
         .key {

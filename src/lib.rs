@@ -370,26 +370,11 @@ impl MazeGame {
             cell.class_list().add_1("visited")?;
         }
         if (x, y) == self.current_position {
-            cell.class_list().add_1("current")?;
-            for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)].iter() {
-                let next_x = (x as i32 + dx) as usize;
-                let next_y = (y as i32 + dy) as usize;
-                
-                // Check if the adjacent cell is within bounds and accessible
-                if next_x < self.size && next_y < self.size && self.is_adjacent(next_x, next_y) {
-                    let pointer = self.document.create_element("span")?;
-                    pointer.set_class_name("pointer");
-                    let direction = match (*dx, *dy) {
-                        (1, 0) => "right",
-                        (-1, 0) => "left",
-                        (0, 1) => "down",
-                        (0, -1) => "up",
-                        _ => unreachable!(),
-                    };
-                    pointer.class_list().add_1(direction)?;
-                    pointer.set_text_content(Some("⏶"));
-                    cell.append_child(&pointer)?;
-                }
+            if (x, y) == self.current_position {
+                cell.class_list().add_1("current")?;
+                // Add an empty span for the left/right pseudo-elements
+                let span = self.document.create_element("span")?;
+                cell.append_child(&span)?;
             }
         }
 
