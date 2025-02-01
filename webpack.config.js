@@ -1,34 +1,23 @@
-const path = require("path");
-const CopyPlugin = require("copy-webpack-plugin");
-const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-
-const dist = path.resolve(__dirname, "dist");
-
-module.exports = {
-  mode: "production",
-  entry: {
-    index: "./js/index.js"
-  },
+import { resolve } from "path";
+import CopyPlugin from "copy-webpack-plugin";
+import WasmPackPlugin from "@wasm-tool/wasm-pack-plugin";
+export default {
+  entry: "./js/index.js",
   output: {
-    path: dist,
-    filename: "[name].js"
+    path: resolve("dist"),
+    filename: "index.js"
   },
   experiments: {
     asyncWebAssembly: true
   },
   devServer: {
-    static: {
-      directory: dist
-    },
-    open: true
+    static: "dist",
+    open: true,
   },
   plugins: [
-    new CopyPlugin([
-      path.resolve(__dirname, "static")
-    ]),
-
+    new CopyPlugin(["static"]),
     new WasmPackPlugin({
-      crateDirectory: __dirname,
+      crateDirectory: ".",
     }),
   ]
-};
+}
