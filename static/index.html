@@ -13,7 +13,7 @@
             --text-color: #808080;
             --visited-color: #262626;
             --current-color: #404040;
-            --chevron-color: #4d4d4d;
+            --pointer-color: #4d4d4d;
             --key-color: #704214;
             --door-color: #4a2308;
         }
@@ -26,7 +26,7 @@
                 --text-color: #787878;
                 --visited-color: #0a0a0a;
                 --current-color: #1a1a1a;
-                --chevron-color: #404040;
+                --pointer-color: #404040;
                 --key-color: #8b6b43;
                 --door-color: #5c4423;
             }
@@ -74,10 +74,10 @@
         .current > span::before,
         .current > span::after {
             content: "⏶";
+            pointer-events: none;
             position: absolute;
             font-size: calc(var(--cell-size) * 0.4);
-            color: var(--chevron-color);
-            line-height: 1;
+            color: var(--pointer-color);
             z-index: 1;
         }
 

@@ -246,20 +246,36 @@ impl MazeGame {
     }
     pub fn render(&self) -> Result<(), JsValue> {
         let maze = self.document.get_element_by_id("maze").unwrap();
-        maze.set_attribute(
-            "style",
-            &format!("grid-template-columns: repeat({}, 60px)", self.size),
-        )?;
-        maze.set_inner_html("");
 
-        for y in 0..self.size {
-            for x in 0..self.size {
-                let cell = self.create_cell(x, y)?;
+        // Only regenerate grid if size changed
+        if maze.children().length() as usize != self.size * self.size {
+            maze.set_attribute(
+                "style",
+                &format!("grid-template-columns: repeat({}, 60px)", self.size),
+            )?;
+            maze.set_inner_html("");
+
+            // Create cells only once
+            for _ in 0..(self.size * self.size) {
+                let cell = self.document.create_element("div")?;
+                cell.set_class_name("cell");
+                let span = self.document.create_element("span")?;
+                cell.append_child(&span)?;
                 maze.append_child(&cell)?;
             }
         }
 
-        // Update stats
+        // Update existing cells
+        for y in 0..self.size {
+            for x in 0..self.size {
+                let index = (y * self.size + x) as u32; // Convert to u32 for item() call
+                if let Some(cell) = maze.children().item(index) {
+                    self.update_cell_state(&cell, x, y)?;
+                }
+            }
+        }
+
+        // Update stats (unchanged)
         if let Some(level_el) = self.document.get_element_by_id("level") {
             level_el.set_inner_html(&self.level.to_string());
         }
@@ -269,35 +285,96 @@ impl MazeGame {
         if let Some(timer_el) = self.document.get_element_by_id("timer") {
             let minutes = self.time_remaining / 60;
             let seconds = self.time_remaining % 60;
-            timer_el.set_inner_html(&format!("{}:{:02} !", minutes, seconds)); // Removed v3 suffix
+            timer_el.set_inner_html(&format!("{}:{:02}", minutes, seconds));
         }
         Ok(())
     }
-    #[wasm_bindgen]
+fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), JsValue> {
+    // Reset base class
+    cell.set_class_name("cell");
+    
+    // Update state classes
+    if self.visited.contains(&(x, y)) {
+        cell.class_list().add_1("visited")?;
+    }
+    if (x, y) == self.current_position {
+        cell.class_list().add_1("current")?;
+        // Ensure span exists for pseudo-elements
+        if cell.children().length() == 0 {
+            let span = self.document.create_element("span")?;
+            cell.append_child(&span)?;
+        }
+    } else {
+        // Remove span if not current position
+        while cell.children().length() > 0 {
+            if let Some(child) = cell.first_child() {
+                cell.remove_child(&child)?;
+            }
+        }
+    }
+
+    // Update content only if needed
+    let content = if (x, y) == self.key_position && !self.has_key {
+        "🔑"
+    } else if (x, y) == self.current_position && self.has_key {
+        "🔑"
+    } else if (x, y) == self.door_position {
+        "🚪"
+    } else {
+        ""
+    };
+
+    if cell.inner_html() != content {
+        cell.set_inner_html(content);
+        // Re-add span if this is current position (since inner_html clears children)
+        if (x, y) == self.current_position {
+            let span = self.document.create_element("span")?;
+            cell.append_child(&span)?;
+        }
+    }
+
+    Ok(())
+}    #[wasm_bindgen]
     pub fn start(&mut self) -> Result<(), JsValue> {
         let game_state = Rc::new(RefCell::new(self.clone()));
 
-        // Add cell click handler
         let click_handler = {
             let game_state = game_state.clone();
-            Closure::wrap(Box::new(move |event: web_sys::CustomEvent| {
+            Closure::wrap(Box::new(move |event: web_sys::MouseEvent| {
                 if let Ok(mut game) = game_state.try_borrow_mut() {
-                    let coords = event.detail().as_string().unwrap();
-                    let mut coords = coords.split(',');
-                    let x = coords.next().unwrap().parse::<usize>().unwrap();
-                    let y = coords.next().unwrap().parse::<usize>().unwrap();
+                    if let Some(target) = event.target() {
+                        if let Some(element) = target.dyn_ref::<Element>() {
+                            if let Ok(Some(maze_el)) = element.closest("#maze") {
+                                // Find clicked cell index
+                                let children = maze_el.children();
+                                let cell_index = (0..children.length())
+                                    .find(|&i| {
+                                        children
+                                            .item(i)
+                                            .map(|cell| cell.is_same_node(Some(element)))
+                                            .unwrap_or(false)
+                                    })
+                                    .unwrap_or(0)
+                                    as usize;
 
-                    // Add the try_move call and only render on valid moves
-                    let result = game.try_move(x, y);
-                    if result != 0 {
-                        game.render().unwrap();
+                                let size = game.size;
+                                let x = cell_index % size;
+                                let y = cell_index / size;
+
+                                let result = game.try_move(x, y);
+                                if result != 0 {
+                                    game.render().unwrap();
+                                }
+                            }
+                        }
                     }
                 }
             }) as Box<dyn FnMut(_)>)
         };
+        // Attach single click handler to maze container
         if let Some(maze_el) = self.document.get_element_by_id("maze") {
             maze_el.add_event_listener_with_callback(
-                "cell-click",
+                "click",
                 click_handler.as_ref().unchecked_ref(),
             )?;
             click_handler.forget();
