@@ -2,7 +2,7 @@ use js_sys::Math;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::prelude::*;
-use web_sys::{console, Document, Element, HtmlElement};
+use web_sys::{console, Document, Element};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -246,95 +246,93 @@ impl MazeGame {
     }
     pub fn render(&self) -> Result<(), JsValue> {
         let maze = self.document.get_element_by_id("maze").unwrap();
-
+    
         // Only regenerate grid if size changed
         if maze.children().length() as usize != self.size * self.size {
             maze.set_attribute(
                 "style",
                 &format!("grid-template-columns: repeat({}, 60px)", self.size),
             )?;
-            maze.set_inner_html("");
-
+            
+            // Clear existing content safely
+            while let Some(child) = maze.first_child() {
+                maze.remove_child(&child)?;
+            }
+    
             // Create cells only once
             for _ in 0..(self.size * self.size) {
                 let cell = self.document.create_element("div")?;
                 cell.set_class_name("cell");
                 let span = self.document.create_element("span")?;
+                let content = self.document.create_text_node("");
+                cell.append_child(&content)?;
                 cell.append_child(&span)?;
                 maze.append_child(&cell)?;
             }
         }
-
+    
         // Update existing cells
         for y in 0..self.size {
             for x in 0..self.size {
-                let index = (y * self.size + x) as u32; // Convert to u32 for item() call
+                let index = (y * self.size + x) as u32;
                 if let Some(cell) = maze.children().item(index) {
                     self.update_cell_state(&cell, x, y)?;
                 }
             }
         }
-
-        // Update stats (unchanged)
+    
+        // Update stats
         if let Some(level_el) = self.document.get_element_by_id("level") {
-            level_el.set_inner_html(&self.level.to_string());
+            level_el.set_text_content(Some(&self.level.to_string()));
         }
         if let Some(completed_el) = self.document.get_element_by_id("completed") {
-            completed_el.set_inner_html(&self.mazes_completed.to_string());
+            completed_el.set_text_content(Some(&self.mazes_completed.to_string()));
         }
         if let Some(timer_el) = self.document.get_element_by_id("timer") {
             let minutes = self.time_remaining / 60;
             let seconds = self.time_remaining % 60;
-            timer_el.set_inner_html(&format!("{}:{:02}", minutes, seconds));
+            timer_el.set_text_content(Some(&format!("{}:{:02}", minutes, seconds)));
         }
         Ok(())
     }
-fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), JsValue> {
-    // Reset base class
-    cell.set_class_name("cell");
     
-    // Update state classes
-    if self.visited.contains(&(x, y)) {
-        cell.class_list().add_1("visited")?;
-    }
-    if (x, y) == self.current_position {
-        cell.class_list().add_1("current")?;
-        // Ensure span exists for pseudo-elements
-        if cell.children().length() == 0 {
-            let span = self.document.create_element("span")?;
-            cell.append_child(&span)?;
+    fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), JsValue> {
+        // Reset base class
+        cell.set_class_name("cell");
+        
+        // Update state classes
+        if self.visited.contains(&(x, y)) {
+            cell.class_list().add_1("visited")?;
         }
-    } else {
-        // Remove span if not current position
-        while cell.children().length() > 0 {
-            if let Some(child) = cell.first_child() {
-                cell.remove_child(&child)?;
+        if (x, y) == self.current_position {
+            cell.class_list().add_1("current")?;
+            // Ensure span exists for pseudo-elements
+            if cell.children().length() == 0 {
+                let span = self.document.create_element("span")?;
+                cell.append_child(&span)?;
             }
         }
-    }
-
-    // Update content only if needed
-    let content = if (x, y) == self.key_position && !self.has_key {
-        "🔑"
-    } else if (x, y) == self.current_position && self.has_key {
-        "🔑"
-    } else if (x, y) == self.door_position {
-        "🚪"
-    } else {
-        ""
-    };
-
-    if cell.inner_html() != content {
-        cell.set_inner_html(content);
-        // Re-add span if this is current position (since inner_html clears children)
-        if (x, y) == self.current_position {
-            let span = self.document.create_element("span")?;
-            cell.append_child(&span)?;
+    
+        // Update content
+        let content = if (x, y) == self.key_position && !self.has_key {
+            "🔑"
+        } else if (x, y) == self.current_position && self.has_key {
+            "🔑"
+        } else if (x, y) == self.door_position {
+            "🚪"
+        } else {
+            ""
+        };
+    
+        // Update text content if it's different
+        if let Some(first_child) = cell.first_child() {
+            if first_child.text_content().unwrap_or_default() != content {
+                first_child.set_text_content(Some(content));
+            }
         }
-    }
-
-    Ok(())
-}    #[wasm_bindgen]
+    
+        Ok(())
+    }    #[wasm_bindgen]
     pub fn start(&mut self) -> Result<(), JsValue> {
         let game_state = Rc::new(RefCell::new(self.clone()));
 
@@ -406,7 +404,7 @@ fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), Js
                         if let Some(timer_el) = game.document.get_element_by_id("timer") {
                             let minutes = game.time_remaining / 60;
                             let seconds = game.time_remaining % 60;
-                            timer_el.set_inner_html(&format!("{}:{:02}", minutes, seconds));
+                            timer_el.set_text_content(Some(&format!("{}:{:02}", minutes, seconds)));
                         }
 
                         game.render().unwrap_or_else(|_| {
@@ -437,54 +435,6 @@ fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), Js
         f.forget();
         console::log_1(&"Setup complete".into());
         Ok(())
-    }
-    fn create_cell(&self, x: usize, y: usize) -> Result<Element, JsValue> {
-        let cell = self.document.create_element("div")?;
-        cell.set_class_name("cell");
-
-        // Add visited and current classes
-        if self.visited.contains(&(x, y)) {
-            cell.class_list().add_1("visited")?;
-        }
-        if (x, y) == self.current_position {
-            if (x, y) == self.current_position {
-                cell.class_list().add_1("current")?;
-                // Add an empty span for the left/right pseudo-elements
-                let span = self.document.create_element("span")?;
-                cell.append_child(&span)?;
-            }
-        }
-
-        // Add key and door symbols - only one instance of the key should exist
-        if (x, y) == self.key_position && !self.has_key {
-            cell.set_inner_html("🔑");
-        } else if (x, y) == self.current_position && self.has_key {
-            cell.set_inner_html("🔑");
-        } else if (x, y) == self.door_position {
-            cell.set_inner_html("🚪");
-        }
-        let x = x.clone();
-        let y = y.clone();
-        let click_callback = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
-            if let Some(window) = web_sys::window() {
-                if let Some(doc) = window.document() {
-                    if let Some(maze_el) = doc.get_element_by_id("maze") {
-                        let event_init = web_sys::CustomEventInit::new();
-                        event_init.set_detail(&JsValue::from_str(&format!("{},{}", x, y)));
-                        let event = web_sys::CustomEvent::new_with_event_init_dict(
-                            "cell-click",
-                            &event_init,
-                        )
-                        .unwrap();
-                        maze_el.dispatch_event(&event).unwrap();
-                    }
-                }
-            }
-        }) as Box<dyn FnMut(_)>);
-        let cell_element: &HtmlElement = cell.dyn_ref().unwrap();
-        cell_element.set_onclick(Some(click_callback.as_ref().unchecked_ref()));
-        click_callback.forget();
-        Ok(cell)
     }
     fn is_adjacent(&self, x: usize, y: usize) -> bool {
         let current_x = self.current_position.0;
@@ -593,7 +543,7 @@ fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), Js
 
         // Force timer display update
         if let Some(timer_el) = self.document.get_element_by_id("timer") {
-            timer_el.set_inner_html("5:00");
+            timer_el.set_text_content(Some("5:00"));
         }
 
         // Update display
