@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::Element;
 
 impl Perception {
-    pub(super) fn render(&self) -> Result<(), JsValue> {
+    pub(crate) fn render(&self) -> Result<(), JsValue> {
         let maze = self.document.get_element_by_id("maze").unwrap();
     
         // Only regenerate grid if size changed

@@ -1,9 +1,7 @@
 mod games;
-mod utils;
 
 pub use games::perception::Perception;
-use js_sys::Math;
-
+use wasm_bindgen::{prelude::*, JsValue};
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;

@@ -36,7 +36,7 @@ impl Perception {
         }
     }
 
-    pub(super) fn try_move_internal(&mut self, x: usize, y: usize) -> i32 {
+    pub(super) fn try_move(&mut self, x: usize, y: usize) -> i32 {
         if !self.is_adjacent(x, y) {
             return 0;
         }

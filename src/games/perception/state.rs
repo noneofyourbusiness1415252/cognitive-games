@@ -1,5 +1,5 @@
 use super::Perception;
-use js_sys::{Date, JSON};
+use js_sys::Date;
 use wasm_bindgen::prelude::*;
 use web_sys::Storage;
 

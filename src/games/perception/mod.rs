@@ -1,4 +1,8 @@
-use js_sys::{Date, Math, JSON};
+mod state;
+mod render;
+mod maze;
+mod movement;
+
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::prelude::*;
