@@ -2,6 +2,7 @@ mod state;
 mod render;
 mod maze;
 mod movement;
+mod timer;
 
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
@@ -107,6 +108,7 @@ impl Perception {
                 }
             }) as Box<dyn FnMut(_)>)
         };
+
         // Attach single click handler to maze container
         if let Some(maze_el) = self.document.get_element_by_id("maze") {
             maze_el.add_event_listener_with_callback(
@@ -115,62 +117,8 @@ impl Perception {
             )?;
             click_handler.forget();
         }
-        let f = {
-            let game_state = game_state.clone();
-            Closure::wrap(Box::new(move || {
-                if let Ok(mut game) = game_state.try_borrow_mut() {
-                    let now = js_sys::Date::now() / 1000.0;
-                    let delta = (now - game.last_tick) as i32;
-                    if delta >= 1 {
-                        game.time_remaining -= 1;
-                        game.last_tick = now;
 
-                        if game.time_remaining <= 0 {
-                            let new_game = Self::create_maze(game.size, game.document.clone());
-                            game.walls = new_game.walls;
-                            game.key_position = new_game.key_position;
-                            game.door_position = new_game.door_position;
-                            game.reset_position();
-                            game.time_remaining = 300;
-                            game.last_tick = now;
-                            game.render().unwrap();
-                        }
-
-                        game.save_state().unwrap_or_else(|_| {
-                            console::log_1(&"Failed to save game state".into());
-                        });
-                        if let Some(timer_el) = game.document.get_element_by_id("timer") {
-                            let minutes = game.time_remaining / 60;
-                            let seconds = game.time_remaining % 60;
-                            timer_el.set_text_content(Some(&format!("{}:{:02}", minutes, seconds)));
-                        }
-
-                        game.render().unwrap_or_else(|_| {
-                            console::log_1(&"Failed to render timer update".into());
-                        });
-
-                        game.save_state().unwrap_or_else(|_| {
-                            console::log_1(&"Failed to save game state".into());
-                        });
-                    }
-                }
-            }) as Box<dyn FnMut()>)
-        };
-
-        // Set up interval timer
-        let window = web_sys::window().unwrap();
-        console::log_1(&"Setting up interval...".into());
-        let result = window.set_interval_with_callback_and_timeout_and_arguments_0(
-            f.as_ref().unchecked_ref(),
-            1000,
-        );
-
-        match result {
-            Ok(_) => console::log_1(&"Interval set up successfully".into()),
-            Err(e) => console::log_2(&"Failed to set up interval:".into(), &e),
-        }
-
-        f.forget();
+        Self::setup_timer(game_state)?;
         console::log_1(&"Setup complete".into());
         Ok(())
     }
