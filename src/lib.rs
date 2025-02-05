@@ -10,7 +10,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub fn main_js() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
-    let game = Perception::new()?;
-    game.render()?;
+    Perception::new()?;
     Ok(())
 }

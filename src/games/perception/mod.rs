@@ -3,6 +3,7 @@ mod render;
 mod maze;
 mod movement;
 mod timer;
+mod input;
 
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
