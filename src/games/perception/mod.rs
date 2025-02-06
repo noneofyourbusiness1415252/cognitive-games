@@ -1,14 +1,14 @@
-mod state;
-mod render;
+mod input;
 mod maze;
 mod movement;
+mod render;
+mod state;
 mod timer;
-mod input;
 
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use wasm_bindgen::prelude::*;
-use web_sys::{console, Document, Element};
+use web_sys::{console, Document};
 
 fn get_document() -> Document {
     web_sys::window()
@@ -75,10 +75,10 @@ impl Perception {
     #[wasm_bindgen]
     pub fn start(&mut self) -> Result<(), JsValue> {
         let game_state = Rc::new(RefCell::new(self.clone()));
-        
+
         Self::setup_click_handler(game_state.clone())?;
         Self::setup_timer(game_state)?;
-        
+
         console::log_1(&"Setup complete".into());
         Ok(())
     }

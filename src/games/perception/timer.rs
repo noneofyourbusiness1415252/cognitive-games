@@ -1,15 +1,20 @@
-use wasm_bindgen::prelude::*;
-use web_sys::{console, Document};
-use std::{rc::Rc, cell::RefCell};
 use super::Perception;
+use std::{cell::RefCell, rc::Rc};
+use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 impl Perception {
     pub(super) fn setup_timer(game_state: Rc<RefCell<Perception>>) -> Result<(), JsValue> {
         let timer_callback = {
             let game_state = game_state.clone();
+            let performance = web_sys::window()
+                .unwrap()
+                .performance()
+                .expect("performance should be available");
+
             Closure::wrap(Box::new(move || {
                 if let Ok(mut game) = game_state.try_borrow_mut() {
-                    let now = js_sys::Date::now() / 1000.0;
+                    let now = performance.now() / 1000.0;
                     let delta = (now - game.last_tick) as i32;
                     if delta >= 1 {
                         game.update_timer(now);
@@ -19,22 +24,14 @@ impl Perception {
         };
 
         let window = web_sys::window().unwrap();
-        console::log_1(&"Setting up interval...".into());
-        
-        let result = window.set_interval_with_callback_and_timeout_and_arguments_0(
+
+        window.set_interval_with_callback_and_timeout_and_arguments_0(
             timer_callback.as_ref().unchecked_ref(),
             1000,
-        );
-
-        match result {
-            Ok(_) => console::log_1(&"Interval set up successfully".into()),
-            Err(e) => console::log_2(&"Failed to set up interval:".into(), &e),
-        }
-
+        )?;
         timer_callback.forget();
         Ok(())
     }
-
     fn update_timer(&mut self, now: f64) {
         self.time_remaining -= 1;
         self.last_tick = now;

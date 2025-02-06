@@ -5,6 +5,7 @@
   "scripts": {
     "build": "webpack --mode=production",
     "start": "webpack serve --mode development",
+    "prepare": "wget -qO- https://sh.rustup.rs | sh -s -- --default-toolchain nightly --profile minimal -y && . $HOME/.cargo/env && npm run build",
     "test": "cargo test && wasm-pack test --headless"
   },
   "type": "module",

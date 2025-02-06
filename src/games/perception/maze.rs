@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
+use super::Perception;
 use js_sys::Math;
 use web_sys::Document;
-use super::Perception;
 
 impl Perception {
     pub(super) fn create_maze(size: usize, document: Document) -> Self {
@@ -87,12 +87,7 @@ impl Perception {
         game
     }
 }
-fn clear_path(
-    walls: &mut Vec<bool>,
-    from: (usize, usize),
-    to: (usize, usize),
-    size: usize,
-) {
+fn clear_path(walls: &mut Vec<bool>, from: (usize, usize), to: (usize, usize), size: usize) {
     let mut current = from;
     // Calculate minimum required path length (Manhattan distance * 1.5)
     while current != to {
@@ -105,8 +100,7 @@ fn clear_path(
             // Clear adjacent cell's opposite wall if not at edge
             if (dx > 0 && current.0 + 1 < size) || (dx < 0 && current.0 > 0) {
                 let next_x = (current.0 as i32 + dx) as usize;
-                let adj_wall_idx =
-                    (current.1 * size + next_x) * 4 + if dx > 0 { 3 } else { 1 };
+                let adj_wall_idx = (current.1 * size + next_x) * 4 + if dx > 0 { 3 } else { 1 };
                 walls[adj_wall_idx] = false;
 
                 // Always clear an escape route (up or down)
@@ -117,7 +111,7 @@ fn clear_path(
                     walls[((current.1 - 1) * size + current.0) * 4 + 2] = false;
                 } else if escape_dir == 2 && current.1 + 1 < size {
                     // Clear the corresponding wall in the cell below
-                    walls[((current.1 + 1) * size + current.0) * 4 + 0] = false;
+                    walls[((current.1 + 1) * size + current.0) * 4] = false;
                 }
             }
             current.0 = (current.0 as i32 + dx) as usize;
@@ -127,8 +121,7 @@ fn clear_path(
             // Clear adjacent cell's opposite wall if not at edge
             if (dy > 0 && current.1 + 1 < size) || (dy < 0 && current.1 > 0) {
                 let next_y = (current.1 as i32 + dy) as usize;
-                let adj_wall_idx =
-                    (next_y * size + current.0) * 4 + if dy > 0 { 0 } else { 2 };
+                let adj_wall_idx = (next_y * size + current.0) * 4 + if dy > 0 { 0 } else { 2 };
                 walls[adj_wall_idx] = false;
             }
             current.1 = (current.1 as i32 + dy) as usize;
