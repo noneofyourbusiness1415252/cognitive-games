@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, HtmlElement, Event};
+use web_sys::{Document, HtmlElement, Event, Element};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 mod expression;
 mod level;
@@ -11,7 +13,7 @@ use state::GameState;
 
 #[wasm_bindgen]
 pub struct Numeracy {
-    state: GameState,
+    state: Rc<RefCell<GameState>>,  // Changed to Rc<RefCell<>> for shared ownership
     document: Document,
     container: HtmlElement,
 }
@@ -28,7 +30,7 @@ impl Numeracy {
             .dyn_into::<HtmlElement>()?;
 
         Ok(Numeracy {
-            state: GameState::new(),
+            state: Rc::new(RefCell::new(GameState::new())),
             document,
             container,
         })
@@ -36,21 +38,36 @@ impl Numeracy {
 
     fn render_bubbles(&self) -> Result<(), JsValue> {
         self.container.set_inner_html("");
+        let state_ref = self.state.borrow();
         
-        for (i, expr) in self.state.expressions.iter().enumerate() {
-            let bubble = self.document.create_element("div")?;
+        for (i, expr) in state_ref.expressions.iter().enumerate() {
+            let bubble: Element = self.document.create_element("div")?;
             bubble.set_class_name("bubble");
             bubble.set_text_content(Some(&expr.text));
             
             let index = i.to_string();
             bubble.set_attribute("data-index", &index)?;
             
-            if self.state.selected_indices.contains(&i) {
+            if state_ref.selected_indices.contains(&i) {
                 bubble.set_attribute("class", "bubble selected")?;
             }
             
+            let state = self.state.clone();
+            // Create a weak reference to the bubble
+            let bubble_ref = bubble.clone();
             let handler = Closure::wrap(Box::new(move |_event: Event| {
-                // Selection logic will be handled here
+                let mut state = state.borrow_mut();
+                if state.toggle_selection(i) {
+                    let is_selected = state.selected_indices.contains(&i);
+                    let class = if is_selected { "bubble selected" } else { "bubble" };
+                    bubble_ref.set_attribute("class", class).unwrap();
+                    
+                    if state.selected_indices.len() == 3 {
+                        let round_success = state.check_current_round();
+                        state.update_score(round_success);
+                        state.start_round();
+                    }
+                }
             }) as Box<dyn FnMut(_)>);
             
             bubble.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
@@ -62,25 +79,88 @@ impl Numeracy {
     }
 
     fn update_stats(&self) -> Result<(), JsValue> {
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let state = self.state.borrow();
         
-        if let Some(level_elem) = document.get_element_by_id("level") {
-            level_elem.set_text_content(Some(&self.state.level.number.to_string()));
+        if let Some(level_elem) = self.document.get_element_by_id("level") {
+            level_elem.set_text_content(Some(&state.level.number.to_string()));
         }
         
-        if let Some(score_elem) = document.get_element_by_id("score") {
-            score_elem.set_text_content(Some(&self.state.score.to_string()));
+        if let Some(score_elem) = self.document.get_element_by_id("score") {
+            score_elem.set_text_content(Some(&state.score.to_string()));
+        }
+        
+        Ok(())
+    }
+
+    fn update_timer(&self) -> Result<(), JsValue> {
+        let state = self.state.borrow();
+        
+        if let Some(timer_elem) = self.document.get_element_by_id("timer") {
+            if let Some(remaining) = state.get_round_time_remaining() {
+                let seconds = remaining.as_secs();
+                let text = format!("{}:{:02}", seconds / 60, seconds % 60);
+                timer_elem.set_text_content(Some(&text));
+            }
+        }
+        Ok(())
+    }
+
+    fn start_timer(&self) -> Result<(), JsValue> {
+        let window = web_sys::window().unwrap();
+        let state = self.state.clone();
+        let document = self.document.clone();
+        let container = self.container.clone();
+        
+        let closure = Closure::wrap(Box::new(move || {
+            let this = Numeracy {
+                state: state.clone(),
+                document: document.clone(),
+                container: container.clone(),
+            };
+            this.update_timer().unwrap();
+            this.check_time_limits().unwrap();
+        }) as Box<dyn FnMut()>);
+        
+        window.set_interval_with_callback_and_timeout_and_arguments_0(
+            closure.as_ref().unchecked_ref(),
+            1000,
+        )?;
+        
+        closure.forget();
+        Ok(())
+    }
+
+    fn check_time_limits(&self) -> Result<(), JsValue> {
+        {
+            let mut state = self.state.borrow_mut();
+            
+            if state.get_round_time_remaining().unwrap().as_secs() == 0 {
+                state.update_score(false);
+                state.start_round();
+            }
+        } // Release borrow before render_bubbles
+        self.render_bubbles()?;
+        
+        {
+            let mut state = self.state.borrow_mut();
+            if state.get_level_time_remaining().unwrap().as_secs() == 0 {
+                if let Some(level_change) = state.should_adjust_level() {
+                    let new_level = (state.level.number as i32 + level_change) as u32;
+                    state.level = Level::new(new_level);
+                }
+                state.start_level();
+            }
         }
         
         Ok(())
     }
 
     #[wasm_bindgen]
-    pub fn start(&mut self) -> Result<(), JsValue> {
-        self.state.start_level();
+    pub fn start(&self) -> Result<(), JsValue> {
+        self.state.borrow_mut().start_level();
         self.render_bubbles()?;
         self.update_stats()?;
+        self.start_timer()?;
         Ok(())
     }
 }
