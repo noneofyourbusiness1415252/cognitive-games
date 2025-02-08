@@ -45,6 +45,7 @@ features = [
     "CustomEventInit",
     "Storage",
     "DomTokenList",
+    "Location",
     "Performance",
     "Text",
 ]

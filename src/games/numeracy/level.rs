@@ -1,5 +1,5 @@
 use super::expression::Expression;
-
+#[derive(Debug)]
 pub struct Level {
     pub number: u32,
     expressions_per_round: usize,

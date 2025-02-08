@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{Document, Element, HtmlElement};
+use web_sys::{Document, HtmlElement};  // Removed unused Element import
 
 mod expression;
 mod level;
