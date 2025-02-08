@@ -97,7 +97,7 @@ impl Numeracy {
         
         if let Some(timer_elem) = self.document.get_element_by_id("timer") {
             if let Some(remaining) = state.get_round_time_remaining() {
-                let seconds = remaining.as_secs();
+                let seconds = (remaining / 1000.0) as u32;
                 let text = format!("{}:{:02}", seconds / 60, seconds % 60);
                 timer_elem.set_text_content(Some(&text));
             }
@@ -134,21 +134,25 @@ impl Numeracy {
         {
             let mut state = self.state.borrow_mut();
             
-            if state.get_round_time_remaining().unwrap().as_secs() == 0 {
-                state.update_score(false);
-                state.start_round();
+            if let Some(remaining) = state.get_round_time_remaining() {
+                if remaining <= 0.0 {
+                    state.update_score(false);
+                    state.start_round();
+                }
             }
         } // Release borrow before render_bubbles
         self.render_bubbles()?;
         
         {
             let mut state = self.state.borrow_mut();
-            if state.get_level_time_remaining().unwrap().as_secs() == 0 {
-                if let Some(level_change) = state.should_adjust_level() {
-                    let new_level = (state.level.number as i32 + level_change) as u32;
-                    state.level = Level::new(new_level);
+            if let Some(remaining) = state.get_level_time_remaining() {
+                if remaining <= 0.0 {
+                    if let Some(level_change) = state.should_adjust_level() {
+                        let new_level = (state.level.number as i32 + level_change) as u32;
+                        state.level = Level::new(new_level);
+                    }
+                    state.start_level();
                 }
-                state.start_level();
             }
         }
         

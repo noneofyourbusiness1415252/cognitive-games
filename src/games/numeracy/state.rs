@@ -1,5 +1,6 @@
 use super::{Expression, Level};
-use std::time::{Duration, Instant};
+use wasm_bindgen::JsValue;
+use web_sys::Performance;
 
 #[derive(Debug)]
 pub struct GameState {
@@ -7,13 +8,16 @@ pub struct GameState {
     pub expressions: Vec<Expression>,
     pub selected_indices: Vec<usize>,
     pub score: i32,
-    pub round_start: Option<Instant>,
-    pub level_start: Option<Instant>,
+    pub round_start: Option<f64>,
+    pub level_start: Option<f64>,
     pub completed_rounds: u32,
+    performance: Performance,
 }
 
 impl GameState {
     pub fn new() -> Self {
+        let window = web_sys::window().unwrap();
+        let performance = window.performance().unwrap();
         let level = Level::new(1);
         let expressions = level.generate_expressions();
         
@@ -25,18 +29,19 @@ impl GameState {
             round_start: None,
             level_start: None,
             completed_rounds: 0,
+            performance,
         }
     }
 
     pub fn start_level(&mut self) {
-        self.level_start = Some(Instant::now());
+        self.level_start = Some(self.performance.now());
         self.start_round();
     }
 
     pub fn start_round(&mut self) {
         self.expressions = self.level.generate_expressions();
         self.selected_indices.clear();
-        self.round_start = Some(Instant::now());
+        self.round_start = Some(self.performance.now());
     }
 
     pub fn toggle_selection(&mut self, index: usize) -> bool {
@@ -65,31 +70,31 @@ impl GameState {
         Level::check_order(&selected_expressions)
     }
 
-    pub fn get_round_time_remaining(&self) -> Option<Duration> {
+    pub fn get_round_time_remaining(&self) -> Option<f64> {
         self.round_start.map(|start| {
-            let elapsed = start.elapsed();
-            if elapsed >= Duration::from_secs(15) {
-                Duration::from_secs(0)
+            let elapsed = self.performance.now() - start;
+            if elapsed >= 15000.0 {
+                0.0
             } else {
-                Duration::from_secs(15) - elapsed
+                15000.0 - elapsed
             }
         })
     }
 
-    pub fn get_level_time_remaining(&self) -> Option<Duration> {
+    pub fn get_level_time_remaining(&self) -> Option<f64> {
         self.level_start.map(|start| {
-            let elapsed = start.elapsed();
-            if elapsed >= Duration::from_secs(300) {
-                Duration::from_secs(0)
+            let elapsed = self.performance.now() - start;
+            if elapsed >= 300000.0 {
+                0.0
             } else {
-                Duration::from_secs(300) - elapsed
+                300000.0 - elapsed
             }
         })
     }
 
     pub fn update_score(&mut self, round_success: bool) {
         let time_bonus = self.get_round_time_remaining()
-            .map(|t| t.as_secs() as i32)
+            .map(|t| (t / 1000.0) as i32)
             .unwrap_or(0);
 
         self.score += if round_success {

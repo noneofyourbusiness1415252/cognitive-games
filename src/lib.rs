@@ -22,7 +22,7 @@ pub fn main_js() -> Result<(), JsValue> {
     
     // Return the created instance rather than discarding it
     Ok(match path.as_str() {
-        "/numeracy.html" => { Numeracy::new()?; },
+        "/numeracy.html" => { let game = Numeracy::new()?; game.start()?; },
         _ => { Perception::new()?; },
     })
 }
