@@ -1,6 +1,6 @@
 use super::{Expression, Level};
 use wasm_bindgen::JsValue;
-use web_sys::Performance;
+use web_sys::{Performance, Storage, Window};
 
 #[derive(Debug)]
 pub struct GameState {
@@ -12,15 +12,23 @@ pub struct GameState {
     pub level_start: Option<f64>,
     pub completed_rounds: u32,
     performance: Performance,
+    storage: Storage,
 }
 
 impl GameState {
     pub fn new() -> Self {
         let window = web_sys::window().unwrap();
-        let performance = window.performance().unwrap();
-        let level = Level::new(1);
-        let expressions = level.generate_expressions();
+        let storage = window.local_storage().unwrap().unwrap();
+        let level_number = storage
+            .get_item("numeracy_level")
+            .unwrap()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(1);
         
+        let level = Level::new(level_number);
+        let expressions = level.generate_expressions();
+        let performance = window.performance().unwrap();
+
         Self {
             level,
             expressions,
@@ -30,6 +38,7 @@ impl GameState {
             level_start: None,
             completed_rounds: 0,
             performance,
+            storage,
         }
     }
 
@@ -98,8 +107,20 @@ impl GameState {
             .unwrap_or(0);
 
         self.score += if round_success {
+            // Evaluate level change after each round
+            if self.score > 0 {
+                let new_level = self.level.number + 1;
+                self.level = Level::new(new_level);
+                self.storage.set_item("numeracy_level", &new_level.to_string()).unwrap();
+            }
             10 + time_bonus
         } else {
+            // Drop a level on failure, but not below 1
+            if self.level.number > 1 {
+                let new_level = self.level.number - 1;
+                self.level = Level::new(new_level);
+                self.storage.set_item("numeracy_level", &new_level.to_string()).unwrap();
+            }
             -5
         };
 

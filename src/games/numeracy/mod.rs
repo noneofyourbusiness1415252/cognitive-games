@@ -140,21 +140,9 @@ impl Numeracy {
                     state.start_round();
                 }
             }
-        } // Release borrow before render_bubbles
-        self.render_bubbles()?;
-        
-        {
-            let mut state = self.state.borrow_mut();
-            if let Some(remaining) = state.get_level_time_remaining() {
-                if remaining <= 0.0 {
-                    if let Some(level_change) = state.should_adjust_level() {
-                        let new_level = (state.level.number as i32 + level_change) as u32;
-                        state.level = Level::new(new_level);
-                    }
-                    state.start_level();
-                }
-            }
         }
+        self.render_bubbles()?;
+        self.update_stats()?;
         
         Ok(())
     }
