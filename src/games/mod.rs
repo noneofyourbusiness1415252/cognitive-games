@@ -1,2 +1,2 @@
-pub mod perception;
 pub mod numeracy;
+pub mod perception;

@@ -1,6 +1,5 @@
 use super::{Expression, Level};
-use wasm_bindgen::JsValue;
-use web_sys::{Performance, Storage, Window};
+use web_sys::{Performance, Storage};
 
 #[derive(Debug)]
 pub struct GameState {
@@ -24,7 +23,7 @@ impl GameState {
             .unwrap()
             .and_then(|s| s.parse().ok())
             .unwrap_or(1);
-        
+
         let level = Level::new(level_number);
         let expressions = level.generate_expressions();
         let performance = window.performance().unwrap();
@@ -90,28 +89,19 @@ impl GameState {
         })
     }
 
-    pub fn get_level_time_remaining(&self) -> Option<f64> {
-        self.level_start.map(|start| {
-            let elapsed = self.performance.now() - start;
-            if elapsed >= 300000.0 {
-                0.0
-            } else {
-                300000.0 - elapsed
-            }
-        })
-    }
-
     pub fn update_score(&mut self, round_success: bool) {
-        let time_bonus = self.get_round_time_remaining()
-            .map(|t| (t / 1000.0) as i32)
-            .unwrap_or(0);
+        let time_bonus = self
+            .get_round_time_remaining()
+            .map_or(0, |t| (t / 1000.0) as i32);
 
         self.score += if round_success {
             // Evaluate level change after each round
             if self.score > 0 {
                 let new_level = self.level.number + 1;
                 self.level = Level::new(new_level);
-                self.storage.set_item("numeracy_level", &new_level.to_string()).unwrap();
+                self.storage
+                    .set_item("numeracy_level", &new_level.to_string())
+                    .unwrap();
             }
             10 + time_bonus
         } else {
@@ -119,27 +109,13 @@ impl GameState {
             if self.level.number > 1 {
                 let new_level = self.level.number - 1;
                 self.level = Level::new(new_level);
-                self.storage.set_item("numeracy_level", &new_level.to_string()).unwrap();
+                self.storage
+                    .set_item("numeracy_level", &new_level.to_string())
+                    .unwrap();
             }
             -5
         };
 
         self.completed_rounds += 1;
-    }
-
-    pub fn should_adjust_level(&self) -> Option<i32> {
-        if self.completed_rounds >= 10 {
-            let success_rate = (self.score as f64) / (self.completed_rounds as f64);
-            
-            Some(if success_rate > 0.8 {
-                1
-            } else if success_rate < 0.4 {
-                -1
-            } else {
-                0
-            })
-        } else {
-            None
-        }
     }
 }

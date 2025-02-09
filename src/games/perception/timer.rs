@@ -1,7 +1,7 @@
-use wasm_bindgen::prelude::*;
-use web_sys::{console, Document};
-use std::{rc::Rc, cell::RefCell};
 use super::Perception;
+use std::{cell::RefCell, rc::Rc};
+use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 impl Perception {
     pub(super) fn setup_timer(game_state: Rc<RefCell<Perception>>) -> Result<(), JsValue> {
@@ -20,7 +20,7 @@ impl Perception {
 
         let window = web_sys::window().unwrap();
         console::log_1(&"Setting up interval...".into());
-        
+
         let result = window.set_interval_with_callback_and_timeout_and_arguments_0(
             timer_callback.as_ref().unchecked_ref(),
             1000,
@@ -53,7 +53,7 @@ impl Perception {
         if let Some(timer_el) = self.document.get_element_by_id("timer") {
             let minutes = self.time_remaining / 60;
             let seconds = self.time_remaining % 60;
-            timer_el.set_text_content(Some(&format!("{}:{:02}", minutes, seconds)));
+            timer_el.set_text_content(Some(&format!("{minutes}:{seconds:02}")));
         }
     }
 

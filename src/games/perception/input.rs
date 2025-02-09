@@ -18,8 +18,7 @@ impl Perception {
                                     .find(|&i| {
                                         children
                                             .item(i)
-                                            .map(|cell| cell.is_same_node(Some(element)))
-                                            .unwrap_or(false)
+                                            .is_some_and(|cell| cell.is_same_node(Some(element)))
                                     })
                                     .unwrap_or(0)
                                     as usize;
