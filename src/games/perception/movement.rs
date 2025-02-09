@@ -21,13 +21,7 @@ impl Perception {
         (dx == 1 && dy == 0) || (dx == 0 && dy == 1)
     }
 
-    pub(super) fn get_wall_index(
-        &self,
-        from_x: usize,
-        from_y: usize,
-        to_x: usize,
-        to_y: usize,
-    ) -> usize {
+    pub(super) fn get_wall_index(&self, from_x: usize, from_y: usize, to_x: usize, to_y: usize) -> usize {
         let cell_walls = 4; // each cell has 4 possible walls
         let base_index = (from_y * self.size + from_x) * cell_walls;
 
@@ -38,7 +32,7 @@ impl Perception {
         } else if to_y > from_y {
             base_index + 2 // bottom wall
         } else {
-            base_index // top wall
+            base_index + 0 // top wall
         }
     }
 
