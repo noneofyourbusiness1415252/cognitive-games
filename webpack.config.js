@@ -23,6 +23,7 @@ export default {
     }),
     new WasmPackPlugin({
       crateDirectory: ".",
+      extraArgs: "--weak-refs --reference-types",
     }),
   ]
 }
