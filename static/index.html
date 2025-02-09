@@ -5,44 +5,31 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
     <title>WASM Maze Game</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&display=swap');
         :root {
             --cell-size: min(5vw, 3.75rem);
-            --bg-color: #1a1a1a;
-            --border-color: #333333;
-            --text-color: #808080;
             --visited-color: #262626;
             --current-color: #404040;
             --pointer-color: #4d4d4d;
-            --key-color: #704214;
-            --door-color: #4a2308;
+            --key-color: #5B1D91;
+            --door-color: #5B1D91;
         }
 
-        /* Dark theme - pure black */
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #000000;
-                --border-color: #1a1a1a;
-                --text-color: #787878;
                 --visited-color: #0a0a0a;
                 --current-color: #1a1a1a;
                 --pointer-color: #404040;
-                --key-color: #8b6b43;
-                --door-color: #5c4423;
+                --key-color: #9B4DE3;
+                --door-color: #9B4DE3;
             }
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-        }
-
-        /* Replace the existing grid and pointer styles with: */
-        /* Replace the existing grid and pointer styles with: */
         .grid {
             display: grid;
             gap: 0;
-            /* Remove gap between cells */
             margin: 1.25rem auto;
             position: relative;
             clip-path: inset(0);
@@ -51,6 +38,7 @@
         .cell {
             width: var(--cell-size);
             height: var(--cell-size);
+            font-family: emoji, "Noto Emoji";
             font-size: calc(var(--cell-size) * 0.9);
             border: 0.0625rem solid var(--border-color);
             background-color: var(--bg-color);
