@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    .brain-outline {
+      fill: #4A90E2;
+    }
+    .cognitive-elements {
+      fill: #333;
+    }
+    @media (prefers-color-scheme: dark) {
+      .brain-outline {
+        fill: #74B9FF;
+      }
+      .cognitive-elements {
+        fill: #E0E0E0;
+      }
+    }
+  </style>
+
+  <!-- Brain outline -->
+  <path 
+    class="brain-outline"
+    d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 26c-6.627 0-12-5.373-12-12S9.373 4 16 4s12 5.373 12 12-5.373 12-12 12z"
+  />
+  
+  <!-- Cognitive elements -->
+  <g class="cognitive-elements">
+    <!-- Numbers for numeracy -->
+    <text x="10" y="14" font-size="6">123</text>
+    
+    <!-- Rotated square for mental rotation -->
+    <rect x="18" y="12" width="6" height="6" transform="rotate(45 21 15)"/>
+    
+    <!-- Eye shape for perception -->
+    <path 
+      d="M8 18c4-4 12-4 16 0-4 4-12 4-16 0z M16 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4z"
+    />
+    
+    <!-- Letters for vocabulary -->
+    <text x="14" y="24" font-size="6">ABC</text>
+  </g>
+</svg>
