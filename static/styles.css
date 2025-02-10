@@ -7,21 +7,26 @@
     --pointer-color: #000000;
     --key-color: #000000;
     --door-color: #000000;
-    --bubble-color: #737373; /* Lighter to maintain contrast with black text */
-    --bubble-selected: #999999; /* Lighter selected state */
+    --bubble-color: #737373;
+    --bubble-selected: #999999;
+    
+    /* Cursor variables */
+    --cursor-stroke: #000000;
+    --cursor-fill: none;
+    --cursor-size: 24;
+    --cursor-opacity: 1;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-color: #000000;
-        --text-color: #8c8c8c; /* Meets 4.5:1 for small text */
+        --text-color: #8c8c8c;
         --border-color: #8c8c8c;
-        --visited-color: #a066ff; /* Lighter purple meeting 3:1 in dark mode */
+        --visited-color: #a066ff;
         --pointer-color: #8c8c8c;
         --key-color: #8c8c8c;
         --door-color: #8c8c8c;
-        --bubble-color: #333333;
-        --bubble-selected: #4d4d4d;
+        --cursor-stroke: #8c8c8c;
     }
 }
 
@@ -30,8 +35,8 @@ body {
     cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23959595'><!-- Pointer base --><path d='M3 3l7 18 2-8 8-2z' stroke='var(--pointer-color)' stroke-width='1.5'/><!-- Rotating arrows suggesting mental rotation --><path d='M12 2a10 10 0 0 1 7 17' stroke='var(--text-color)' stroke-width='1.5'/><!-- Numbers suggesting numeracy --><text x='8' y='10' font-size='4' fill='var(--text-color)'>123</text><!-- Grid pattern suggesting perception --><path d='M16 8h2v2h-2z M16 12h2v2h-2z' fill='var(--text-color)'/></g></svg>") 3 3, auto;
     color: var(--text-color);
     margin: 0;
-    font-family: system-ui, -apple-system, sans-serif;
-    font-size: 1rem; /* 16px base */
+    font-family: sans-serif;
+    font-size: 1rem;
     line-height: 1.5;
 }
 
@@ -40,4 +45,18 @@ body {
     margin: 1rem;
     text-align: center;
     font-size: 1.5rem; /* 24px - qualifies as large text */
+}
+.cell:hover {
+    --cursor-stroke: #4A90E2;
+    --cursor-fill: rgba(74, 144, 226, 0.1);
+    --cursor-size: 28;
+    --cursor-opacity: 0.9;
+}
+
+/* Add active state styles */
+.cell:active {
+    --cursor-stroke: #2563EB;
+    --cursor-fill: rgba(37, 99, 235, 0.2);
+    --cursor-size: 22;
+    --cursor-opacity: 1;
 }

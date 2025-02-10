@@ -89,10 +89,7 @@ impl Numeracy {
             level_elem.set_text_content(Some(&state.level.number.to_string()));
         }
 
-        if let Some(score_elem) = self.document.get_element_by_id("score") {
-            score_elem.set_text_content(Some(&state.score.to_string()));
-        }
-
+        // Removed score element update
         Ok(())
     }
 

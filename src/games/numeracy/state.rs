@@ -6,7 +6,6 @@ pub struct GameState {
     pub level: Level,
     pub expressions: Vec<Expression>,
     pub selected_indices: Vec<usize>,
-    pub score: i32,
     pub round_start: Option<f64>,
     pub level_start: Option<f64>,
     pub completed_rounds: u32,
@@ -32,7 +31,6 @@ impl GameState {
             level,
             expressions,
             selected_indices: Vec::new(),
-            score: 0,
             round_start: None,
             level_start: None,
             completed_rounds: 0,
@@ -94,27 +92,28 @@ impl GameState {
             .get_round_time_remaining()
             .map_or(0, |t| (t / 1000.0) as i32);
 
-        self.score += if round_success {
-            // Evaluate level change after each round
-            if self.score > 0 {
-                let new_level = self.level.number + 1;
+        if round_success {
+            // Calculate level jumps based on time bonus using a mathematical formula
+            let level_jump = if time_bonus > 0 {
+                ((time_bonus as f64 * 0.2).floor() as u32).min(3)
+            } else {
+                0
+            };
+
+            if level_jump > 0 {
+                let new_level = self.level.number + level_jump;
                 self.level = Level::new(new_level);
                 self.storage
                     .set_item("numeracy_level", &new_level.to_string())
                     .unwrap();
             }
-            10 + time_bonus
-        } else {
-            // Drop a level on failure, but not below 1
-            if self.level.number > 1 {
-                let new_level = self.level.number - 1;
-                self.level = Level::new(new_level);
-                self.storage
-                    .set_item("numeracy_level", &new_level.to_string())
-                    .unwrap();
-            }
-            -5
-        };
+        } else if self.level.number > 1 {
+            let new_level = self.level.number - 1;
+            self.level = Level::new(new_level);
+            self.storage
+                .set_item("numeracy_level", &new_level.to_string())
+                .unwrap();
+        }
 
         self.completed_rounds += 1;
     }
