@@ -95,7 +95,7 @@ impl GameState {
         if round_success {
             // Calculate level jumps based on time bonus using a mathematical formula
             let level_jump = if time_bonus > 0 {
-                ((time_bonus as f64 * 0.2).floor() as u32).min(3)
+                ((f64::from(time_bonus) * 0.2).floor() as u32).min(3)
             } else {
                 0
             };
