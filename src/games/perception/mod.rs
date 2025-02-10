@@ -87,8 +87,9 @@ impl Perception {
                     game.reset_to_level_one().unwrap();
                 }
             }) as Box<dyn FnMut(_)>);
-            
-            reset_btn.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
+
+            reset_btn
+                .add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
             handler.forget();
         }
 
@@ -129,13 +130,13 @@ impl Perception {
             self.size = 2; // Level 1 starts with size 2
             self.level = 1;
             self.mazes_completed = 0;
-            
+
             // Create new level 1 maze
             let new_game = Self::create_maze(self.size, self.document.clone());
             self.walls = new_game.walls;
             self.key_position = new_game.key_position;
             self.door_position = new_game.door_position;
-            
+
             // Reset position and timer
             self.reset_position();
             self.time_remaining = 300;
@@ -151,7 +152,7 @@ impl Perception {
             if let Some(timer_el) = self.document.get_element_by_id("timer") {
                 timer_el.set_text_content(Some("5:00"));
             }
-            
+
             // Show/hide reset button based on level
             if let Some(reset_btn) = self.document.get_element_by_id("reset-level") {
                 reset_btn.set_attribute("hidden", "")?;

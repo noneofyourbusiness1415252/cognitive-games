@@ -89,12 +89,12 @@ fn clear_path(walls: &mut [bool], from: (usize, usize), to: (usize, usize), size
     while current != to {
         let dx = (to.0 as i32 - current.0 as i32).signum();
         let dy = (to.1 as i32 - current.1 as i32).signum();
-        
+
         // Handle horizontal movement
         if dx != 0 {
             let wall_idx = (current.1 * size + current.0) * 4 + if dx > 0 { 1 } else { 3 };
             walls[wall_idx] = false;
-            
+
             // Clear adjacent cell's opposite wall
             if (dx > 0 && current.0 + 1 < size) || (dx < 0 && current.0 > 0) {
                 let next_x = (current.0 as i32 + dx) as usize;
@@ -107,7 +107,7 @@ fn clear_path(walls: &mut [bool], from: (usize, usize), to: (usize, usize), size
         else if dy != 0 {
             let wall_idx = (current.1 * size + current.0) * 4 + if dy > 0 { 2 } else { 0 };
             walls[wall_idx] = false;
-            
+
             // Clear adjacent cell's opposite wall
             if (dy > 0 && current.1 + 1 < size) || (dy < 0 && current.1 > 0) {
                 let next_y = (current.1 as i32 + dy) as usize;
@@ -117,7 +117,7 @@ fn clear_path(walls: &mut [bool], from: (usize, usize), to: (usize, usize), size
             }
         }
     }
-    
+
     // Ensure at least one escape route from the destination
     let escape_dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)]; // up, down, left, right
     for (dx, dy) in &escape_dirs {
