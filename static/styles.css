@@ -1,30 +1,27 @@
-/* Shared styles for cognitive games */
 :root {
-    --bg-color: #595959;
+    /* Light theme */
+    --bg-color: #666666;
     --text-color: #000000;
-    --border-color: #333333;
-    --visited-color: #4d4d4d;
-    --current-color: #404040;
+    --border-color: #000000;
+    --visited-color: #4B0082;
     --pointer-color: #000000;
     --key-color: #000000;
     --door-color: #000000;
-    --bubble-color: #404040;
-    --bubble-selected: #303030;
+    --bubble-color: #737373; /* Lighter to maintain contrast with black text */
+    --bubble-selected: #999999; /* Lighter selected state */
 }
 
-/* Dark theme */
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-color: #000000;
-        --text-color: #959595;
-        --border-color: #959595;
-        --visited-color: #1a1a1a;
-        --current-color: #2a2a2a;
-        --pointer-color: #959595;
-        --key-color: #959595;
-        --door-color: #959595;
-        --bubble-color: #2a2a2a;
-        --bubble-selected: #404040;
+        --text-color: #8c8c8c; /* Meets 4.5:1 for small text */
+        --border-color: #8c8c8c;
+        --visited-color: #a066ff; /* Lighter purple meeting 3:1 in dark mode */
+        --pointer-color: #8c8c8c;
+        --key-color: #8c8c8c;
+        --door-color: #8c8c8c;
+        --bubble-color: #333333;
+        --bubble-selected: #4d4d4d;
     }
 }
 
@@ -33,33 +30,14 @@ body {
     cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><g fill='none' stroke='%23959595'><!-- Pointer base --><path d='M3 3l7 18 2-8 8-2z' stroke='var(--pointer-color)' stroke-width='1.5'/><!-- Rotating arrows suggesting mental rotation --><path d='M12 2a10 10 0 0 1 7 17' stroke='var(--text-color)' stroke-width='1.5'/><!-- Numbers suggesting numeracy --><text x='8' y='10' font-size='4' fill='var(--text-color)'>123</text><!-- Grid pattern suggesting perception --><path d='M16 8h2v2h-2z M16 12h2v2h-2z' fill='var(--text-color)'/></g></svg>") 3 3, auto;
     color: var(--text-color);
     margin: 0;
-}
-
-/* Dark theme */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #000000;
-        --text-color: #959595;
-        --border-color: #959595;
-        --visited-color: #1a1a1a;
-        --current-color: #2a2a2a;
-        --pointer-color: #959595;
-        --key-color: #959595;
-        --door-color: #959595;
-        --bubble-color: #2a2a2a;
-        --bubble-selected: #404040;
-    }
-}
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
     font-family: system-ui, -apple-system, sans-serif;
-    margin: 0;
+    font-size: 1rem; /* 16px base */
+    line-height: 1.5;
 }
 
 #stats {
     color: var(--text-color);
     margin: 1rem;
     text-align: center;
+    font-size: 1.5rem; /* 24px - qualifies as large text */
 }

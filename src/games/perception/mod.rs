@@ -77,7 +77,20 @@ impl Perception {
         let game_state = Rc::new(RefCell::new(self.clone()));
 
         Self::setup_click_handler(game_state.clone())?;
-        Self::setup_timer(game_state)?;
+        Self::setup_timer(game_state.clone())?;
+
+        // Set up reset button handler
+        if let Some(reset_btn) = self.document.get_element_by_id("reset-level") {
+            let game_state = game_state.clone();
+            let handler = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
+                if let Ok(mut game) = game_state.try_borrow_mut() {
+                    game.reset_to_level_one().unwrap();
+                }
+            }) as Box<dyn FnMut(_)>);
+            
+            reset_btn.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
+            handler.forget();
+        }
 
         console::log_1(&"Setup complete".into());
         Ok(())
@@ -108,5 +121,46 @@ impl Perception {
         self.visited.insert((0, 0));
         self.has_key = false;
         self.render().expect("Failed to render position reset");
+    }
+    #[wasm_bindgen]
+    pub fn reset_to_level_one(&mut self) -> Result<(), JsValue> {
+        // Only reset if above level 1
+        if self.size > 2 {
+            self.size = 2; // Level 1 starts with size 2
+            self.level = 1;
+            self.mazes_completed = 0;
+            
+            // Create new level 1 maze
+            let new_game = Self::create_maze(self.size, self.document.clone());
+            self.walls = new_game.walls;
+            self.key_position = new_game.key_position;
+            self.door_position = new_game.door_position;
+            
+            // Reset position and timer
+            self.reset_position();
+            self.time_remaining = 300;
+            self.last_tick = js_sys::Date::now() / 1000.0;
+
+            // Update displays
+            if let Some(level_el) = self.document.get_element_by_id("level") {
+                level_el.set_text_content(Some("1"));
+            }
+            if let Some(completed_el) = self.document.get_element_by_id("completed") {
+                completed_el.set_text_content(Some("0"));
+            }
+            if let Some(timer_el) = self.document.get_element_by_id("timer") {
+                timer_el.set_text_content(Some("5:00"));
+            }
+            
+            // Show/hide reset button based on level
+            if let Some(reset_btn) = self.document.get_element_by_id("reset-level") {
+                reset_btn.set_attribute("hidden", "")?;
+            }
+
+            // Save state
+            self.save_state()?;
+            self.render()?;
+        }
+        Ok(())
     }
 }

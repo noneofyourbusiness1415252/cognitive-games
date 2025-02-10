@@ -7,10 +7,15 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         :root {
-            --bubble-color: #404040;
-            --bubble-selected: #606060;
+            --bubble-color: #999999;
+            --bubble-selected: #b3b3b3;
         }
-
+        @media(prefers-color-scheme: dark) {
+            :root {
+                --bubble-color: #333333;
+                --bubble-selected: #4d4d4d;
+            }
+        }
         #game-container {
             display: flex;
             flex-wrap: wrap;
@@ -23,13 +28,15 @@
             width: 120px;
             height: 120px;
             border-radius: 50%;
+        
             background-color: var(--bubble-color);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: background-color 0.2s;
-            font-size: 1.5rem;
+            font-size: 2rem; /* 32px */
+            color: var(--text-color);
         }
 
         .bubble.selected {
@@ -40,6 +47,7 @@
             margin: 1rem;
             text-align: center;
         }
+
     </style>
 </head>
 <body>
