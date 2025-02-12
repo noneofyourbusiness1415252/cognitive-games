@@ -115,6 +115,7 @@ impl Perception {
             time_remaining: 300,
             last_tick: js_sys::Date::now() / 1000.0,
             document,
+            mazes_completed: 0,
         }
     }
 }
