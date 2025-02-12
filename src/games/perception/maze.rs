@@ -1,6 +1,7 @@
 use js_sys::Math;
 use std::collections::HashSet;
 use web_sys::Document;
+use crate::Perception;
 
 impl Perception {
     pub(super) fn create_maze(size: usize, document: Document) -> Self {
