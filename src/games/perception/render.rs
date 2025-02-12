@@ -79,7 +79,11 @@ impl Perception {
             "🔑"
         } else if (x, y) == self.door_position {
             "🚪"
-        } else {
+        }
+        else if (x, y) == self.current_position && !self.has_key {
+            "👤"
+        }
+        else {
             ""
         };
 
