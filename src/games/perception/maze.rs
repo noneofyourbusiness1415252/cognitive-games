@@ -42,64 +42,51 @@ impl DisjointSet {
 }
 
 impl Perception {
+    fn random_position(size: usize, sector: usize) -> (usize, usize) {
+        let sector_size = size / 3;
+        let offset = sector * sector_size;
+        (
+            (Math::random() * sector_size as f64) as usize + offset,
+            (Math::random() * sector_size as f64) as usize + offset,
+        )
+    }
+
     pub(super) fn create_maze(size: usize, document: Document) -> Self {
         let total_cells = size * size;
         let mut walls = vec![true; total_cells * 4];
         let mut ds = DisjointSet::new(total_cells);
-        let mut edges = Vec::new();
+        let mut edges = Vec::with_capacity(2 * size * (size - 1));
 
         // Generate all possible edges
-        for y in 0..size {
-            for x in 0..size {
-                let cell = y * size + x;
-                if x < size - 1 {
-                    edges.push((cell, cell + 1, cell * 4 + 1)); // right wall
-                }
-                if y < size - 1 {
-                    edges.push((cell, cell + size, cell * 4 + 2)); // bottom wall
-                }
+        for cell in 0..total_cells {
+            let x = cell % size;
+            let y = cell / size;
+            if x < size - 1 {
+                edges.push((cell, cell + 1, cell * 4 + 1));
+            }
+            if y < size - 1 {
+                edges.push((cell, cell + size, cell * 4 + 2));
             }
         }
 
-        // Shuffle edges
+        // Fisher-Yates shuffle
         for i in (1..edges.len()).rev() {
-            let j = (Math::random() * (i + 1) as f64) as usize;
-            edges.swap(i, j);
+            edges.swap(i, (Math::random() * (i + 1) as f64) as usize);
         }
+
+        // Generate positions in different sectors
+        let start_position = Self::random_position(size, 0);
+        let key_position = Self::random_position(size, 1);
+        let door_position = Self::random_position(size, 2);
 
         // Create maze using Kruskal's algorithm
         for (cell1, cell2, wall_idx) in edges {
             if ds.find(cell1) != ds.find(cell2) {
                 walls[wall_idx] = false;
-                // Mirror wall removal (if removing right wall of cell1, remove left wall of cell2)
-                if wall_idx % 4 == 1 { // right wall
-                    walls[wall_idx + 2] = false; // left wall of adjacent cell
-                } else if wall_idx % 4 == 2 { // bottom wall
-                    walls[wall_idx + size * 4 - 2] = false; // top wall of cell below
-                }
+                // Mirror wall removal
+                walls[wall_idx + if wall_idx % 4 == 1 { 2 } else { size * 4 - 2 }] = false;
                 ds.union(cell1, cell2);
             }
-        }
-
-        // Generate start position in the first third
-        let start_x = (Math::random() * (size as f64 / 3.0)) as usize;
-        let start_y = (Math::random() * (size as f64 / 3.0)) as usize;
-        let start_position = (start_x, start_y);
-
-        // Generate key position in the middle third
-        let key_x = (Math::random() * (size as f64 / 3.0)) as usize + size / 3;
-        let key_y = (Math::random() * (size as f64 / 3.0)) as usize + size / 3;
-        let key_position = (key_x, key_y);
-
-        // Generate door position in the last third
-        let door_x = (Math::random() * (size as f64 / 3.0)) as usize + (2 * size) / 3;
-        let door_y = (Math::random() * (size as f64 / 3.0)) as usize + (2 * size) / 3;
-        let door_position = (door_x, door_y);
-
-        // Make door position initially inaccessible by adding walls around it
-        let door_cell = door_y * size + door_x;
-        for i in 0..4 {
-            walls[door_cell * 4 + i] = true;
         }
 
         Self {
