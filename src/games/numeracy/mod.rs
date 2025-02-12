@@ -37,47 +37,52 @@ impl Numeracy {
     }
 
     fn render_bubbles(&self) -> Result<(), JsValue> {
-        self.container.set_inner_html("");
         let state_ref = self.state.borrow();
+        let children = self.container.children();
 
-        for (i, expr) in state_ref.expressions.iter().enumerate() {
-            let bubble: Element = self.document.create_element("div")?;
-            bubble.set_class_name("bubble");
-            bubble.set_text_content(Some(&expr.text));
+        for i in 0..children.length() {
+            if let Some(bubble) = children.item(i) {
+                let bubble: Element = bubble.dyn_into::<Element>()?;
 
-            let index = i.to_string();
-            bubble.set_attribute("data-index", &index)?;
+                if let Some(expr) = state_ref.expressions.get(i as usize) {
+                    bubble.set_text_content(Some(&expr.text));
 
-            if state_ref.selected_indices.contains(&i) {
-                bubble.set_attribute("class", "bubble selected")?;
-            }
-
-            let state = self.state.clone();
-            // Create a weak reference to the bubble
-            let bubble_ref = bubble.clone();
-            let handler = Closure::wrap(Box::new(move |_event: Event| {
-                let mut state = state.borrow_mut();
-                if state.toggle_selection(i) {
-                    let is_selected = state.selected_indices.contains(&i);
-                    let class = if is_selected {
+                    let class = if state_ref.selected_indices.contains(&(i as usize)) {
                         "bubble selected"
                     } else {
                         "bubble"
                     };
-                    bubble_ref.set_attribute("class", class).unwrap();
+                    bubble.set_attribute("class", class)?;
 
-                    if state.selected_indices.len() == 3 {
-                        let round_success = state.check_current_round();
-                        state.update_score(round_success);
-                        state.start_round();
-                    }
+                    let state = self.state.clone();
+                    let bubble_ref = bubble.clone();
+                    let i = i as usize;
+                    let handler = Closure::wrap(Box::new(move |_event: Event| {
+                        let mut state = state.borrow_mut();
+                        if state.toggle_selection(i) {
+                            let is_selected = state.selected_indices.contains(&i);
+                            let class = if is_selected {
+                                "bubble selected"
+                            } else {
+                                "bubble"
+                            };
+                            bubble_ref.set_attribute("class", class).unwrap();
+
+                            if state.selected_indices.len() == 3 {
+                                let round_success = state.check_current_round();
+                                state.update_score(round_success);
+                                state.start_round();
+                            }
+                        }
+                    }) as Box<dyn FnMut(_)>);
+
+                    bubble.add_event_listener_with_callback(
+                        "click",
+                        handler.as_ref().unchecked_ref(),
+                    )?;
+                    handler.forget();
                 }
-            }) as Box<dyn FnMut(_)>);
-
-            bubble.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
-            handler.forget();
-
-            self.container.append_child(&bubble)?;
+            }
         }
         Ok(())
     }

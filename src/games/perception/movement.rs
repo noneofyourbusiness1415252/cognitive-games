@@ -79,11 +79,12 @@ impl Perception {
             self.level += 1;
             let new_game = Self::create_maze(self.size, self.document.clone());
             self.walls = new_game.walls;
-            self.current_position = (0, 0);
+            self.current_position = new_game.start_position; // Use start_position from new maze
+            self.start_position = new_game.start_position; // Also update start_position
             self.key_position = new_game.key_position;
             self.door_position = new_game.door_position;
             self.visited.clear();
-            self.visited.insert((0, 0));
+            self.visited.insert(new_game.start_position); // Insert correct start position
             self.has_key = false;
             self.time_remaining = 300;
             self.last_tick = js_sys::Date::now() / 1000.0;

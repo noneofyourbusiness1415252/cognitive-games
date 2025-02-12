@@ -1,140 +1,102 @@
+use js_sys::Math;
 use std::collections::HashSet;
+use web_sys::Document;
 
 use super::Perception;
-use js_sys::Math;
-use web_sys::Document;
 
 impl Perception {
     pub(super) fn create_maze(size: usize, document: Document) -> Self {
-        let walls = (0..size * size * 4)
-            .map(|_| Math::random() < 0.5)
-            .collect::<Vec<bool>>();
-        let (waypoint1, key_position, waypoint2, door_position) = if size == 2 {
-            let key_pos = loop {
-                let pos = (
-                    (Math::random() * 2.0).floor() as usize,
-                    (Math::random() * 2.0).floor() as usize,
-                );
-                if pos != (0, 0) {
-                    break pos;
-                }
-            };
-            // Get random non-start, non-key position for door
-            let door_pos = loop {
-                let pos = (
-                    (Math::random() * 2.0).floor() as usize,
-                    (Math::random() * 2.0).floor() as usize,
-                );
-                if pos != (0, 0) && pos != key_pos {
-                    break pos;
-                }
-            };
-            (key_pos, key_pos, door_pos, door_pos)
-        } else {
-            let (mut key_pos, mut door_pos);
-            loop {
-                key_pos = (
-                    ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
-                    ((size as f64) * 0.6 + Math::random() * (size as f64) * 0.3).floor() as usize,
-                );
+        let mut walls = vec![true; size * size * 4]; // Initialize all walls as true
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
 
-                door_pos = (
-                    ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
-                    ((size as f64) * 0.7 + Math::random() * (size as f64) * 0.2).floor() as usize,
-                );
+        // Helper function to get random int in range
+        let random_int = |max: usize| -> usize { (Math::random() * max as f64).floor() as usize };
 
-                if key_pos != door_pos && key_pos != (0, 0) && door_pos != (0, 0) {
-                    break;
-                }
+        // Generate random start position
+        let start_x = random_int(size);
+        let start_y = random_int(size);
+        let start_pos = (start_x, start_y);
+
+        visited.insert(start_pos);
+        stack.push(start_pos);
+
+        // Generate maze using iterative DFS
+        while let Some(&current) = stack.last() {
+            let (x, y) = current;
+            let mut neighbors = Vec::new();
+
+            // Check all possible neighbors
+            if x > 0 && !visited.contains(&(x - 1, y)) {
+                neighbors.push((x - 1, y, 3));
             }
-            (
-                (
-                    (Math::random() * (size as f64)).floor() as usize,
-                    (Math::random() * (size as f64)).floor() as usize,
-                ),
-                key_pos,
-                (
-                    (Math::random() * (size as f64)).floor() as usize,
-                    (Math::random() * (size as f64)).floor() as usize,
-                ),
-                door_pos,
-            )
-        };
+            if x < size - 1 && !visited.contains(&(x + 1, y)) {
+                neighbors.push((x + 1, y, 1));
+            }
+            if y > 0 && !visited.contains(&(x, y - 1)) {
+                neighbors.push((x, y - 1, 0));
+            }
+            if y < size - 1 && !visited.contains(&(x, y + 1)) {
+                neighbors.push((x, y + 1, 2));
+            }
 
-        let mut game = Self {
+            if neighbors.is_empty() {
+                stack.pop();
+            } else {
+                // Choose random unvisited neighbor
+                let (next_x, next_y, wall_dir) = neighbors[random_int(neighbors.len())];
+
+                // Remove wall between current and chosen cell
+                let cell_walls = 4;
+                let current_idx = (y * size + x) * cell_walls;
+                walls[current_idx + wall_dir] = false;
+
+                // Remove opposite wall of neighbor
+                let opposite_wall = match wall_dir {
+                    0 => 2, // top -> bottom
+                    1 => 3, // right -> left
+                    2 => 0, // bottom -> top
+                    3 => 1, // left -> right
+                    _ => unreachable!(),
+                };
+                let neighbor_idx = (next_y * size + next_x) * cell_walls;
+                walls[neighbor_idx + opposite_wall] = false;
+
+                visited.insert((next_x, next_y));
+                stack.push((next_x, next_y));
+            }
+        }
+
+        // Generate key and door positions (ensuring they're different from start and each other)
+        let mut available_positions: Vec<(usize, usize)> = (0..size)
+            .flat_map(|y| (0..size).map(move |x| (x, y)))
+            .filter(|&pos| pos != start_pos)
+            .collect();
+
+        let key_idx = random_int(available_positions.len());
+        let key_position = available_positions.remove(key_idx);
+
+        let door_idx = random_int(available_positions.len());
+        let door_position = available_positions[door_idx];
+
+        // Create initial visited set with just start position
+        let mut initial_visited = HashSet::new();
+        initial_visited.insert(start_pos);
+
+        Perception {
             size,
-            walls,
-            current_position: (0, 0),
-            key_position,
-            door_position,
-            visited: HashSet::new(),
-            has_key: false,
             level: 1,
             mazes_completed: 0,
-            document,
+            walls,
+            current_position: start_pos,
+            start_position: start_pos,
+            key_position,
+            door_position,
+            visited: initial_visited,
+            has_key: false,
             time_remaining: 300,
             last_tick: js_sys::Date::now() / 1000.0,
-        };
-        // Create path through waypoints
-        clear_path(&mut game.walls, (0, 0), waypoint1, size);
-        clear_path(&mut game.walls, waypoint1, key_position, size);
-        clear_path(&mut game.walls, key_position, waypoint2, size);
-        clear_path(&mut game.walls, waypoint2, door_position, size);
-        game.visited.insert((0, 0));
-        game
-    }
-}
-fn clear_path(walls: &mut [bool], from: (usize, usize), to: (usize, usize), size: usize) {
-    let mut current = from;
-    while current != to {
-        let dx = (to.0 as i32 - current.0 as i32).signum();
-        let dy = (to.1 as i32 - current.1 as i32).signum();
-
-        // Handle horizontal movement
-        if dx != 0 {
-            let wall_idx = (current.1 * size + current.0) * 4 + if dx > 0 { 1 } else { 3 };
-            walls[wall_idx] = false;
-
-            // Clear adjacent cell's opposite wall
-            if (dx > 0 && current.0 + 1 < size) || (dx < 0 && current.0 > 0) {
-                let next_x = (current.0 as i32 + dx) as usize;
-                let adj_wall_idx = (current.1 * size + next_x) * 4 + if dx > 0 { 3 } else { 1 };
-                walls[adj_wall_idx] = false;
-                current.0 = next_x;
-            }
-        }
-        // Handle vertical movement
-        else if dy != 0 {
-            let wall_idx = (current.1 * size + current.0) * 4 + if dy > 0 { 2 } else { 0 };
-            walls[wall_idx] = false;
-
-            // Clear adjacent cell's opposite wall
-            if (dy > 0 && current.1 + 1 < size) || (dy < 0 && current.1 > 0) {
-                let next_y = (current.1 as i32 + dy) as usize;
-                let adj_wall_idx = (next_y * size + current.0) * 4 + if dy > 0 { 0 } else { 2 };
-                walls[adj_wall_idx] = false;
-                current.1 = next_y;
-            }
-        }
-    }
-
-    // Ensure at least one escape route from the destination
-    let escape_dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)]; // up, down, left, right
-    for (dx, dy) in &escape_dirs {
-        let next_x = to.0 as i32 + dx;
-        let next_y = to.1 as i32 + dy;
-        if next_x >= 0 && next_x < size as i32 && next_y >= 0 && next_y < size as i32 {
-            let wall_idx = (to.1 * size + to.0) * 4
-                + if *dy < 0 {
-                    0
-                } else if *dx > 0 {
-                    1
-                } else if *dy > 0 {
-                    2
-                } else {
-                    3
-                };
-            walls[wall_idx] = false;
+            document,
         }
     }
 }

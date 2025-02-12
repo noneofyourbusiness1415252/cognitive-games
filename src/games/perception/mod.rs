@@ -29,6 +29,7 @@ pub struct Perception {
     // Maze elements
     walls: Vec<bool>,
     current_position: (usize, usize),
+    start_position: (usize, usize),
     key_position: (usize, usize),
     door_position: (usize, usize),
     visited: HashSet<(usize, usize)>,
@@ -117,16 +118,16 @@ impl Perception {
         self.render().expect("Failed to render reset");
     }
     fn reset_position(&mut self) {
-        self.current_position = (0, 0);
+        self.current_position = self.start_position;
         self.visited.clear();
-        self.visited.insert((0, 0));
+        self.visited.insert(self.start_position);
         self.has_key = false;
         self.render().expect("Failed to render position reset");
     }
     #[wasm_bindgen]
     pub fn reset_to_level_one(&mut self) -> Result<(), JsValue> {
         // Only reset if above level 1
-        if self.size > 2 {
+        if self.size > 1 {
             self.size = 2; // Level 1 starts with size 2
             self.level = 1;
             self.mazes_completed = 0;
