@@ -43,11 +43,21 @@ impl DisjointSet {
 
 impl Perception {
     fn random_position(size: usize, sector: usize) -> (usize, usize) {
-        let total_cells = size * size;
-        let sector_size = (total_cells / 3).max(1);
-        let start = sector * sector_size;
-        let cell_index = start + (Math::random() * sector_size as f64) as usize;
-        (cell_index % size, cell_index / size)
+        if size <= 2 {
+            // Special handling for 2x2:
+            // start: (0,0), key: (1,0), door: (1,1)
+            return match sector {
+                0 => (0, 0),
+                1 => (1, 0),
+                _ => (1, 1),
+            };
+        }
+        
+        let third = size / 3.max(1);
+        let x_offset = sector * third;
+        let x = x_offset + (Math::random() * third as f64) as usize;
+        let y = (Math::random() * size as f64) as usize;
+        (x.min(size - 1), y)
     }
 
     pub(super) fn create_maze(size: usize, document: Document) -> Self {
