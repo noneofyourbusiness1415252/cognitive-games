@@ -13,12 +13,16 @@
             --visited-color: #999999;
             --pointer-color: #000000;
             --grid-fg: #0a0310;
+            /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on a #999999 background */
+            --visited-fg: #491672;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
                 --visited-color: #333333;
                 --grid-fg: #5e1d92;
+                /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on a #333333 background */
+                --visited-fg: #be3aff;
             }
         }
 
@@ -44,8 +48,10 @@
             position: relative;
         }
 
+        /* For visited or current cells, you can now apply the new fg colour as needed */
         .visited, .current {
             background-color: var(--visited-color);
+            color: var(--visited-fg);
         }
 
         .current::before,
