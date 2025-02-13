@@ -53,17 +53,32 @@ impl Perception {
             .local_storage()?
             .expect("no local storage");
 
-        let mut game = if let Some(state) = storage.get_item("maze_state")? {
+        let now = js_sys::Date::now();
+        let game = if let Some(state) = storage.get_item("maze_state")? {
             let last_save = storage
                 .get_item("maze_time")?
                 .unwrap_or_else(|| "0".to_string())
                 .parse::<f64>()
                 .unwrap_or(0.0);
 
-            if js_sys::Date::now() - last_save > 300000.0 {
+            // If more than 5 minutes (300000 ms) have passed since last save, create a new maze.
+            if now - last_save > 300000.0 {
                 Self::create_maze(2, document)
             } else {
-                serde_wasm_bindgen::from_value(js_sys::JSON::parse(&state)?)?
+                // Deserialize the saved state.
+                let mut game: Self =
+                    serde_wasm_bindgen::from_value(js_sys::JSON::parse(&state)?)?;
+                let now_secs = now / 1000.0;
+                let elapsed = now_secs - game.last_tick;
+                if elapsed as i32 >= game.time_remaining {
+                    // Timer expired: start a new maze.
+                    Self::create_maze(2, document)
+                } else {
+                    // Otherwise adjust the time remaining based on elapsed time.
+                    game.time_remaining -= elapsed as i32;
+                    game.last_tick = now_secs;
+                    game
+                }
             }
         } else {
             Self::create_maze(2, document)
