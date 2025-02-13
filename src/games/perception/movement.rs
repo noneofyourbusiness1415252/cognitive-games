@@ -59,6 +59,9 @@ impl Perception {
             return -1;
         }
 
+        // Record the move before updating the position
+        self.moves += 1;  // <-- Increment move counter
+
         self.current_position = (x, y);
         self.visited.insert((x, y));
 

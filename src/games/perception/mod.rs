@@ -24,7 +24,7 @@ pub struct Perception {
     size: usize,
     level: usize,
     #[serde(default)]
-    mazes_completed: usize,
+    moves: usize,  // <-- New field to record moves
 
     // Maze elements
     walls: Vec<bool>,

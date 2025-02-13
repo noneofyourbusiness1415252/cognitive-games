@@ -44,8 +44,8 @@ impl Perception {
         if let Some(level_el) = self.document.get_element_by_id("level") {
             level_el.set_text_content(Some(&self.level.to_string()));
         }
-        if let Some(completed_el) = self.document.get_element_by_id("completed") {
-            completed_el.set_text_content(Some(&self.mazes_completed.to_string()));
+        if let Some(completed_el) = self.document.get_element_by_id("moves") {
+            completed_el.set_text_content(Some(&self.moves.to_string()));
         }
         if let Some(timer_el) = self.document.get_element_by_id("timer") {
             let minutes = self.time_remaining / 60;
