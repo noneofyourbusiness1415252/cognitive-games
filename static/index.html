@@ -29,11 +29,11 @@
 
         .grid {
             display: grid;
-            color: var(--grid-fg);
-            gap: 0;
             margin: 1.25rem auto;
+            gap: 0;
             position: relative;
-            clip-path: inset(0);
+            clip-path: inset(0 -0.125rem 0 0);
+            width: max-content;
         }
 
         .cell {
@@ -49,7 +49,6 @@
             position: relative;
         }
 
-        /* For visited or current cells, you can now apply the new fg colour as needed */
         .visited, .current {
             background-color: var(--visited-color);
             color: var(--visited-fg);
@@ -99,17 +98,24 @@
             color: var(--text-color);
             margin: 1rem;
             text-align: center;
+            font-size: 1.5rem; /* 24px - qualifies as large text */
+        }
+
+        #timer-display {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: bold;
         }
     </style>
 </head>
 
-
 <body>
     <div id="stats">
         Level: <span id="level">1</span> |
-        Moves: <span id="moves">0</span> |
-        Time: <span id="timer">5:00</span>
+        Moves: <span id="moves">0</span>
     </div>
+    <div id="timer">5:00</span>
     <div id="maze" class="grid"></div>
     <button hidden id="reset-level">Reset to level 1</button>
     <script src="index.js"></script>

@@ -34,12 +34,6 @@ body {
     line-height: 1.5;
 }
 
-#stats {
-    color: var(--text-color);
-    margin: 1rem;
-    text-align: center;
-    font-size: 1.5rem; /* 24px - qualifies as large text */
-}
 .cell:hover {
     --cursor-stroke: #4A90E2;
     --cursor-fill: rgba(74, 144, 226, 0.1);
