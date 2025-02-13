@@ -127,10 +127,9 @@ impl Perception {
     #[wasm_bindgen]
     pub fn reset_to_level_one(&mut self) -> Result<(), JsValue> {
         // Only reset if above level 1
-        if self.size > 1 {
+        if self.size > 2 {
             self.size = 2; // Level 1 starts with size 2
             self.level = 1;
-            self.mazes_completed = 0;
 
             // Create new level 1 maze
             let new_game = Self::create_maze(self.size, self.document.clone());
@@ -147,8 +146,8 @@ impl Perception {
             if let Some(level_el) = self.document.get_element_by_id("level") {
                 level_el.set_text_content(Some("1"));
             }
-            if let Some(completed_el) = self.document.get_element_by_id("completed") {
-                completed_el.set_text_content(Some("0"));
+            if let Some(el) = self.document.get_element_by_id("moves") {
+                el.set_text_content(Some("0"));
             }
             if let Some(timer_el) = self.document.get_element_by_id("timer") {
                 timer_el.set_text_content(Some("5:00"));

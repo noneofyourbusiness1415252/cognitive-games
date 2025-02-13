@@ -160,8 +160,7 @@ impl Perception {
             visited,
             has_key: false,
             level: 1,
-            mazes_completed: 0,
-            moves: 0,  // <-- Initialize moves to 0
+            moves: 0,
             time_remaining: 300,
             last_tick: Date::now() / 1000.0,
         }
