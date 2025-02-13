@@ -54,7 +54,7 @@ impl Perception {
             .expect("no local storage");
 
         let now = js_sys::Date::now();
-        let game = if let Some(state) = storage.get_item("maze_state")? {
+        let mut game = if let Some(state) = storage.get_item("maze_state")? {
             let last_save = storage
                 .get_item("maze_time")?
                 .unwrap_or_else(|| "0".to_string())
