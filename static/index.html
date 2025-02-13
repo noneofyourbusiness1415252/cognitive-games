@@ -12,21 +12,19 @@
             --cell-size: min(5vw, 3.75rem);
             --visited-color: #999999;
             --pointer-color: #000000;
-            --key-color: #000000;
-            --door-color: #000000;
+            --grid-fg: #0a0310;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
                 --visited-color: #333333;
-                --pointer-color: #959595;
-                --key-color: #959595;
-                --door-color: #959595;
+                --grid-fg: #5e1d92;
             }
         }
 
         .grid {
             display: grid;
+            color: var(--grid-fg);
             gap: 0;
             margin: 1.25rem auto;
             position: relative;
@@ -88,14 +86,6 @@
             left: 100%;
             top: 50%;
             transform: translateY(-50%) rotate(90deg);
-        }
-
-        .key {
-            color: var(--key-color);
-        }
-
-        .door {
-            color: var(--door-color);
         }
 
         #stats {
