@@ -121,6 +121,7 @@ impl Perception {
         self.reset_position();
 
         // Reset timer state completely
+        self.moves = 0;
         self.time_remaining = 300;
         self.last_tick = js_sys::Date::now() / 1000.0;
 
