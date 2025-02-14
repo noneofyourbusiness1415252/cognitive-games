@@ -100,7 +100,25 @@ impl Perception {
         if self.walls[wall_idx] {
             // Animate the wall hit before resetting position.
             let _ = self.animate_wall_hit(x, y);
-            self.reset_position();
+            
+            // Delay resetting position to let the animation play.
+            let window = web_sys::window().unwrap();
+            let game_ptr = self as *mut Self; // SAFETY: used within a controlled closure
+            let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
+                unsafe {
+                    (*game_ptr).reset_position();
+                    // (Optionally, update only the affected cells instead of full re-render.)
+                }
+            }) as Box<dyn FnMut()>);
+            
+            window
+                .set_timeout_with_callback_and_timeout_and_arguments_0(
+                    closure.as_ref().unchecked_ref(),
+                    2000,
+                )
+                .unwrap();
+            closure.forget();
+            
             return -1;
         }
 
