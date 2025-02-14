@@ -148,7 +148,7 @@ impl Perception {
 
         // Helper closure to update a specific cell.
         let update_cell = |x: usize, y: usize| -> Result<(), JsValue> {
-            let index = (y * game.size + x) as u32;
+            let index = (y * self.size + x) as u32;
             if let Some(cell) = maze.children().item(index) {
                 self.update_cell_state(&cell, x, y)?;
             }
