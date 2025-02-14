@@ -29,7 +29,7 @@ serde-wasm-bindgen = "0.5"
 console_error_panic_hook = { version = "0.1.5", optional = true }
 
 [dependencies.web-sys]
-version = "0.3.22"
+version = "0.3.77"
 features = [
     "console",
     "Document",
@@ -55,3 +55,5 @@ features = [
 wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"
 wasm-bindgen-futures = "0.3.22"
+[build]
+rustflags = ["--cfg=web_sys_unstable_apis"]
