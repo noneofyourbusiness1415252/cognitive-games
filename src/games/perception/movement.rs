@@ -1,4 +1,8 @@
 use super::Perception;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+use web_sys::window;
 
 impl Perception {
     pub(super) fn is_adjacent(&self, x: usize, y: usize) -> bool {
