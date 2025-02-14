@@ -147,10 +147,10 @@ impl Perception {
             .expect("Maze element not found");
 
         // Helper closure to update a specific cell.
-        let update_cell = |x: usize, y: usize, game: &Self| -> Result<(), JsValue> {
+        let update_cell = |x: usize, y: usize| -> Result<(), JsValue> {
             let index = (y * game.size + x) as u32;
             if let Some(cell) = maze.children().item(index) {
-                game.update_cell_state(&cell, x, y)?;
+                self.update_cell_state(&cell, x, y)?;
             }
             Ok(())
         };
