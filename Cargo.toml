@@ -48,6 +48,7 @@ features = [
     "Location",
     "Performance",
     "Text",
+    "Animation",
 ]
 
 [dev-dependencies]
