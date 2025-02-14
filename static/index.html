@@ -109,22 +109,21 @@
             margin-bottom: 1rem;
             font-weight: bold;
         }
-
+        .hit {
+            transition: border 1000ms ease-out;
+            --border: var(--cell-size) solid red;
+        }
         .cell.hit-top {
-            border-top: 2px solid red;
-            transition: border-top 300ms ease;
+            border-top: var(--border);
         }
         .cell.hit-bottom {
-            border-bottom: 2px solid red;
-            transition: border-bottom 300ms ease;
+            border-bottom: var(--border);
         }
         .cell.hit-left {
-            border-left: 2px solid red;
-            transition: border-left 300ms ease;
+            border-left: var(--border);
         }
         .cell.hit-right {
-            border-right: 2px solid red;
-            transition: border-right 300ms ease;
+            border-right: var(--border);
         }
     </style>
 </head>
