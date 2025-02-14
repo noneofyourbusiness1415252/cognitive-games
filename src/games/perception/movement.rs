@@ -5,8 +5,8 @@ use wasm_bindgen::JsCast;
 use web_sys::window;
 
 impl Perception {
-    pub(super) fn is_adjacent(&self, x: usize, y: usize) -> bool {
-        let current_x = self.current_position.0;
+    // Changed visibility from `pub(super)` to restrict to perception.
+    pub(in crate::games::perception) fn is_adjacent(&self, x: usize, y: usize) -> bool {
         let current_y = self.current_position.1;
 
         // Check if target position is adjacent (up, down, left, right)
@@ -50,24 +50,37 @@ impl Perception {
         let maze = self.document.get_element_by_id("maze").unwrap();
         let index = self.current_position.1 * self.size + self.current_position.0;
         if let Some(cell) = maze.children().item(index as u32) {
-            let dir = if target_x > self.current_position.0 {
-                "right"
+            // Determine which border to animate.
+            let border_prop = if target_x > self.current_position.0 {
+                "border-right"
             } else if target_x < self.current_position.0 {
-                "left"
+                "border-left"
             } else if target_y > self.current_position.1 {
-                "bottom"
+                "border-bottom"
             } else {
-                "top"
+                "border-top"
             };
-            let class = format!("hit-{}", dir);
-            cell.class_list().add_1(&class)?;
-            let cell_clone = cell.clone();
-            let class_clone = class.clone();
-            let closure = Closure::wrap(Box::new(move || {
-                let _ = cell_clone.class_list().remove_1(&class_clone);
-            }) as Box<dyn FnMut()>);
-            window().unwrap().set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(), 300)?;
-            closure.forget();
+
+            // Build keyframes: start with a strong colored border, then transition to none.
+            let keyframes = js_sys::Array::new();
+
+            let start_frame = js_sys::Object::new();
+            js_sys::Reflect::set(&start_frame, &JsValue::from_str("offset"), &JsValue::from_f64(0.0))?;
+            js_sys::Reflect::set(&start_frame, &JsValue::from_str(border_prop), &JsValue::from_str("2px solid red"))?;
+            keyframes.push(&start_frame);
+
+            let end_frame = js_sys::Object::new();
+            js_sys::Reflect::set(&end_frame, &JsValue::from_str("offset"), &JsValue::from_f64(1.0))?;
+            js_sys::Reflect::set(&end_frame, &JsValue::from_str(border_prop), &JsValue::from_str("0px solid transparent"))?;
+            keyframes.push(&end_frame);
+
+            // Set animation options: duration and persistence on finish.
+            let options = js_sys::Object::new();
+            js_sys::Reflect::set(&options, &JsValue::from_str("duration"), &JsValue::from_f64(300.0))?;
+            js_sys::Reflect::set(&options, &JsValue::from_str("fill"), &JsValue::from_str("forwards"))?;
+
+            // Start the animation. The returned Animation isn’t used here.
+            let _anim = cell.animate(&keyframes.into(), &options.into())?;
         }
         Ok(())
     }
