@@ -5,8 +5,8 @@ use wasm_bindgen::JsCast;
 use web_sys::window;
 
 impl Perception {
-    // Changed visibility from `pub(super)` to restrict to perception.
-    pub(in crate::games::perception) fn is_adjacent(&self, x: usize, y: usize) -> bool {
+    pub(super) fn is_adjacent(&self, x: usize, y: usize) -> bool {
+        let current_x = self.current_position.0;
         let current_y = self.current_position.1;
 
         // Check if target position is adjacent (up, down, left, right)
