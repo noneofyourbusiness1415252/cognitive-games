@@ -134,11 +134,32 @@ impl Perception {
         self.render().expect("Failed to render reset");
     }
     fn reset_position(&mut self) {
+        let old_pos = self.current_position;
         self.current_position = self.start_position;
         self.visited.clear();
         self.visited.insert(self.start_position);
         self.has_key = false;
-        self.render().expect("Failed to render position reset");
+
+        // Update only the changed cells rather than the entire grid.
+        let maze = self
+            .document
+            .get_element_by_id("maze")
+            .expect("Maze element not found");
+
+        // Helper closure to update a specific cell.
+        let update_cell = |x: usize, y: usize, game: &Self| -> Result<(), JsValue> {
+            let index = (y * game.size + x) as u32;
+            if let Some(cell) = maze.children().item(index) {
+                game.update_cell_state(&cell, x, y)?;
+            }
+            Ok(())
+        };
+
+        // Update the old cell if it differs from start_position.
+        if old_pos != self.start_position {
+            let _ = update_cell(old_pos.0, old_pos.1, self);
+        }
+        let _ = update_cell(self.start_position.0, self.start_position.1, self);
     }
     #[wasm_bindgen]
     pub fn reset_to_level_one(&mut self) -> Result<(), JsValue> {
