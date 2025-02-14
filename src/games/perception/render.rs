@@ -55,7 +55,7 @@ impl Perception {
         Ok(())
     }
 
-    pub fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), JsValue> {
+    pub(super) fn update_cell_state(&self, cell: &Element, x: usize, y: usize) -> Result<(), JsValue> {
         // Reset base class
         cell.set_class_name("cell");
 
