@@ -49,6 +49,8 @@
             align-items: center;
             position: relative;
             user-select: none;
+            transition: border 1000ms ease-out;
+            --border: var(--cell-size) solid red;
         }
 
         .visited, .current {
@@ -109,10 +111,7 @@
             margin-bottom: 1rem;
             font-weight: bold;
         }
-        .hit {
-            transition: border 1000ms ease-out;
-            --border: var(--cell-size) solid red;
-        }
+
         .cell.hit-top {
             border-top: var(--border);
         }
