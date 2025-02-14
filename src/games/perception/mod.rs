@@ -157,9 +157,9 @@ impl Perception {
 
         // Update the old cell if it differs from start_position.
         if old_pos != self.start_position {
-            let _ = update_cell(old_pos.0, old_pos.1, self);
+            let _ = update_cell(old_pos.0, old_pos.1);
         }
-        let _ = update_cell(self.start_position.0, self.start_position.1, self);
+        let _ = update_cell(self.start_position.0, self.start_position.1);
     }
     #[wasm_bindgen]
     pub fn reset_to_level_one(&mut self) -> Result<(), JsValue> {
