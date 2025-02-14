@@ -89,6 +89,8 @@ impl Perception {
             self.visited.clear();
             self.visited.insert(new_game.start_position); // Insert correct start position
             self.has_key = false;
+            self.moves = 0;
+
             self.time_remaining = 300;
             self.last_tick = js_sys::Date::now() / 1000.0;
             return 2;

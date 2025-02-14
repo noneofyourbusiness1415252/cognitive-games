@@ -23,7 +23,6 @@ impl Perception {
         visited_cells[idx(start_row, start_col)] = true;
 
         // Directions: (dr, dc, current wall index, neighbor wall index)
-        // Here we assume cell coordinates are (row, col):
         // Up: (r-1, c) uses wall 0 in current and 2 in neighbor.
         // Right: (r, c+1) uses wall 1 in current and 3 in neighbor.
         // Down: (r+1, c) uses wall 2 in current and 0 in neighbor.
@@ -126,19 +125,23 @@ impl Perception {
         }
         path.reverse();
 
-        // Assign start and door as the two endpoints.
-        let start_cell = cell_a;
-        let door_cell = cell_b;
-
-        // Place the key on an intermediate cell on the path.
-        let key_cell = if path.len() >= 3 {
+        // In the DFS/BFS we used (row, col) order.
+        // Convert to (x, y) where x = col and y = row to match movement.rs.
+        let convert = |(r, c): (usize, usize)| (c, r);
+        let start_rc = cell_a;
+        let door_rc = cell_b;
+        let key_rc = if path.len() >= 3 {
             // Pick a random intermediate index (excluding endpoints)
             let key_idx = 1 + ((Math::random() * ((path.len() - 2) as f64)).floor() as usize);
-            let key = path[key_idx];
-            (key / size, key % size)
+            let cell = path[key_idx];
+            (cell / size, cell % size)
         } else {
-            start_cell
+            start_rc
         };
+
+        let start_cell = convert(start_rc);
+        let door_cell = convert(door_rc);
+        let key_cell  = convert(key_rc);
 
         // --- Initialize remaining fields ---
         let mut visited = HashSet::new();
