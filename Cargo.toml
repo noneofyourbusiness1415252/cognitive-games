@@ -49,6 +49,7 @@ features = [
     "Performance",
     "Text",
     "Animation",
+    "KeyframeAnimationOptions",
 ]
 
 [dev-dependencies]

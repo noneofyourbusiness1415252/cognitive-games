@@ -49,8 +49,8 @@
             align-items: center;
             position: relative;
             user-select: none;
-            transition: border 1000ms ease-out;
-            --border: var(--cell-size) solid red;
+            /* transition: border 1000ms ease-out;
+            --border: var(--cell-size) solid red; */
         }
 
         .visited, .current {
@@ -112,18 +112,37 @@
             font-weight: bold;
         }
 
-        .cell.hit-top {
-            border-top: var(--border);
+        /* Define keyframe animations for each hitting direction */
+        @keyframes hitTop {
+            from { border-top: var(--cell-size) solid red; }
+            to { border-top: 0px solid transparent; }
+        }
+        @keyframes hitBottom {
+            from { border-bottom: var(--cell-size) solid red; }
+            to { border-bottom: 0px solid transparent; }
+        }
+        @keyframes hitLeft {
+            from { border-left: var(--cell-size) solid red; }
+            to { border-left: 0px solid transparent; }
+        }
+        @keyframes hitRight {
+            from { border-right: var(--cell-size) solid red; }
+            to { border-right: 0px solid transparent; }
+        }
+
+        /* Apply the animations via classes */
+        /* .cell.hit-top {
+            animation: hitTop 1000ms ease-out forwards;
         }
         .cell.hit-bottom {
-            border-bottom: var(--border);
+            animation: hitBottom 1000ms ease-out forwards;
         }
         .cell.hit-left {
-            border-left: var(--border);
+            animation: hitLeft 1000ms ease-out forwards;
         }
         .cell.hit-right {
-            border-right: var(--border);
-        }
+            animation: hitRight 1000ms ease-out forwards;
+        } */
     </style>
 </head>
 

@@ -1,6 +1,6 @@
 use super::Perception;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::closure::Closure;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::window;
 
@@ -61,26 +61,43 @@ impl Perception {
                 "border-top"
             };
 
-            // Build keyframes: start with a strong colored border, then transition to none.
+            // Build keyframes: from red border to no border.
             let keyframes = js_sys::Array::new();
 
             let start_frame = js_sys::Object::new();
-            js_sys::Reflect::set(&start_frame, &JsValue::from_str("offset"), &JsValue::from_f64(0.0))?;
-            js_sys::Reflect::set(&start_frame, &JsValue::from_str(border_prop), &JsValue::from_str("2px solid red"))?;
+            js_sys::Reflect::set(
+                &start_frame,
+                &JsValue::from_str("offset"),
+                &JsValue::from_f64(0.0),
+            )?;
+            js_sys::Reflect::set(
+                &start_frame,
+                &JsValue::from_str(border_prop),
+                &JsValue::from_str("var(--cell-size) solid red"),
+            )?;
             keyframes.push(&start_frame);
 
             let end_frame = js_sys::Object::new();
-            js_sys::Reflect::set(&end_frame, &JsValue::from_str("offset"), &JsValue::from_f64(1.0))?;
-            js_sys::Reflect::set(&end_frame, &JsValue::from_str(border_prop), &JsValue::from_str("0px solid transparent"))?;
+            js_sys::Reflect::set(
+                &end_frame,
+                &JsValue::from_str("offset"),
+                &JsValue::from_f64(1.0),
+            )?;
+            js_sys::Reflect::set(
+                &end_frame,
+                &JsValue::from_str(border_prop),
+                &JsValue::from_str("0px solid transparent"),
+            )?;
             keyframes.push(&end_frame);
 
-            // Set animation options: duration and persistence on finish.
-            let options = js_sys::Object::new();
-            js_sys::Reflect::set(&options, &JsValue::from_str("duration"), &JsValue::from_f64(300.0))?;
-            js_sys::Reflect::set(&options, &JsValue::from_str("fill"), &JsValue::from_str("forwards"))?;
+            // Create KeyframeAnimationOptions and set the options.
+            let options = web_sys::KeyframeAnimationOptions::new();
+            options.set_duration(&10000.0.into());
 
-            // Start the animation. The returned Animation isn’t used here.
-            let _anim = cell.animate(&keyframes.into(), &options.into())?;
+            // Use animate_with_keyframe_animation_options.
+            let anim = cell.animate_with_f64(Some(keyframes.as_ref()), 10000.0);
+
+            web_sys::console::log_3(&anim, &keyframes, &options);
         }
         Ok(())
     }
@@ -100,7 +117,7 @@ impl Perception {
         if self.walls[wall_idx] {
             // Animate the wall hit before resetting position.
             let _ = self.animate_wall_hit(x, y);
-            
+
             // Delay resetting position to let the animation play.
             let window = web_sys::window().unwrap();
             let game_ptr = self as *mut Self; // SAFETY: used within a controlled closure
@@ -110,20 +127,20 @@ impl Perception {
                     // (Optionally, update only the affected cells instead of full re-render.)
                 }
             }) as Box<dyn FnMut()>);
-            
+
             window
                 .set_timeout_with_callback_and_timeout_and_arguments_0(
                     closure.as_ref().unchecked_ref(),
-                    2000,
+                    1000,
                 )
                 .unwrap();
             closure.forget();
-            
+
             return -1;
         }
 
         // Record the move before updating the position
-        self.moves += 1;  // <-- Increment move counter
+        self.moves += 1; // <-- Increment move counter
 
         self.current_position = (x, y);
         self.visited.insert((x, y));
