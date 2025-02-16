@@ -52,13 +52,13 @@ impl Perception {
         if let Some(cell) = maze.children().item(index as u32) {
             // Determine which border to animate.
             let border_prop = if target_x > self.current_position.0 {
-                "border-right"
+                "borderRight"
             } else if target_x < self.current_position.0 {
-                "border-left"
+                "borderLeft"
             } else if target_y > self.current_position.1 {
-                "border-bottom"
+                "borderBottom"
             } else {
-                "border-top"
+                "borderTop"
             };
 
             // Build keyframes: from red border to no border.
@@ -73,7 +73,7 @@ impl Perception {
             js_sys::Reflect::set(
                 &start_frame,
                 &JsValue::from_str(border_prop),
-                &JsValue::from_str("var(--cell-size) solid red"),
+                &JsValue::from_str("1ch solid var(--magma-color)"),
             )?;
             keyframes.push(&start_frame);
 
@@ -89,20 +89,14 @@ impl Perception {
                 &JsValue::from_str("0px solid transparent"),
             )?;
             keyframes.push(&end_frame);
-
-            // Create KeyframeAnimationOptions and set the options.
-            let options = web_sys::KeyframeAnimationOptions::new();
-            options.set_duration(&10000.0.into());
-
-            // Use animate_with_keyframe_animation_options.
-            let anim = cell.animate_with_f64(Some(keyframes.as_ref()), 10000.0);
-
-            web_sys::console::log_3(&anim, &keyframes, &options);
+            let anim = cell.animate_with_f64(Some(&keyframes), 1000.0);
+            web_sys::console::log_2(&anim, &keyframes);
         }
         Ok(())
     }
 
     pub(super) fn try_move(&mut self, x: usize, y: usize) -> i32 {
+        #[cfg(debug_assertions)]
         if !self.is_adjacent(x, y) {
             return 0;
         }
@@ -117,25 +111,7 @@ impl Perception {
         if self.walls[wall_idx] {
             // Animate the wall hit before resetting position.
             let _ = self.animate_wall_hit(x, y);
-
-            // Delay resetting position to let the animation play.
-            let window = web_sys::window().unwrap();
-            let game_ptr = self as *mut Self; // SAFETY: used within a controlled closure
-            let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
-                unsafe {
-                    (*game_ptr).reset_position();
-                    // (Optionally, update only the affected cells instead of full re-render.)
-                }
-            }) as Box<dyn FnMut()>);
-
-            window
-                .set_timeout_with_callback_and_timeout_and_arguments_0(
-                    closure.as_ref().unchecked_ref(),
-                    1000,
-                )
-                .unwrap();
-            closure.forget();
-
+            self.reset_position();
             return -1;
         }
 
