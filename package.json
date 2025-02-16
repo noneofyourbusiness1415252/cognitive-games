@@ -1,20 +1,13 @@
 {
   "author": "You <you@example.com>",
-  "name": "rust-webpack-template",
+  "name": "rust-yew-ssr-template",
   "version": "0.1.0",
   "scripts": {
-    "build": "command -v cargo | . ~/.cargo/env  && webpack --mode=production",
-    "start": "webpack serve --mode=development",
-    "prepare": "wget -qO- https://sh.rustup.rs | sh -s -- --default-toolchain nightly --profile minimal -y && . $HOME/.cargo/env && npm run build",
-    "test": "cargo test && wasm-pack test --headless"
+    "build": "cargo build --release && wrangler build",
+    "start": "wrangler dev",
+    "prepare": "cargo build --release",
+    "test": "cargo test"
   },
   "type": "module",
-  "devDependencies": {
-    "@types/copy-webpack-plugin": "^8.0.1",
-    "@wasm-tool/wasm-pack-plugin": "^1.1.0",
-    "copy-webpack-plugin": "^12.0.2",
-    "webpack": "^5.97.1",
-    "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.0"
-  }
+  "devDependencies": {}
 }
