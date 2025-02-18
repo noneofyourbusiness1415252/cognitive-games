@@ -19,6 +19,10 @@ export default {
     new WasmPackPlugin({
       crateDirectory: ".",
       extraArgs: "--weak-refs --reference-types",
+      extraEnv: {
+        RUSTUP_HOME: process.env.npm_config_rustup_home,
+        CARGO_HOME: process.env.npm_config_cargo_home
+      }
     }),
   ]
 }
