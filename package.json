@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "build": "command -v cargo | . ~/.cargo/env  && webpack --mode=production",
-    "start": "wrangler pages dev",
+    "start": "webpack --mode=development & wrangler pages dev",
     "prepare": "wget -qO- https://sh.rustup.rs | sh -s -- --default-toolchain nightly --profile minimal -y && . $HOME/.cargo/env && npm run build",
     "test": "cargo test && wasm-pack test --headless"
   },
