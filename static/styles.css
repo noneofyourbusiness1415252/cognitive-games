@@ -1,6 +1,7 @@
 :root {
     /* Light theme */
     --bg-color: #666666;
+    --bg-2: #999999;
     --text-color: #000000;
     --border-color: #000000;
     
@@ -14,12 +15,9 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --bg-color: #000000;
+        --bg-2: #333333;
         --text-color: #8c8c8c;
         --border-color: #8c8c8c;
-        --visited-color: #a066ff;
-        --pointer-color: #8c8c8c;
-        --key-color: #8c8c8c;
-        --door-color: #8c8c8c;
         --cursor-stroke: #8c8c8c;
     }
 }

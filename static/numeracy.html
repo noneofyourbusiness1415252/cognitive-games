@@ -7,12 +7,10 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         :root {
-            --bubble-color: #999999;
             --bubble-selected: #b3b3b3;
         }
         @media(prefers-color-scheme: dark) {
             :root {
-                --bubble-color: #333333;
                 --bubble-selected: #4d4d4d;
             }
         }
@@ -25,11 +23,11 @@
         }
 
         .bubble {
-            width: 120px;
-            height: 120px;
+            width: 7.5rem;
+            height: 7.5rem;
             border-radius: 50%;
         
-            background-color: var(--bubble-color);
+            background-color: var(--bg-2);
             display: flex;
             align-items: center;
             justify-content: center;

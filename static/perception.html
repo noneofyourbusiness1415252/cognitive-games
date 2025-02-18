@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>WASM Maze Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&display=swap');
+        :root {
+            --cell-size: min(5vw, 3.75rem);
+            --pointer-color: #000000;
+            --grid-fg: #0a0310;
+            /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on var(--bg-2) */
+            --visited-fg: #491672;
+            /* Darkest shade of red that yields ≥ 3:1 contrast on --bg-color (#666666) */
+            --magma-color: #400000;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --pointer-color: #959595;
+                --grid-fg: #8200E6;
+                /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on var(--bg-2) */
+                --visited-fg: #be3aff;
+                /* Darkest shade of red that yields ≥ 3:1 contrast on --bg-color (#000000) */
+                --magma-color: #B60000;
+            }
+        }
+        .grid {
+            display: grid;
+            color: var(--grid-fg);
+            margin: 1.25rem auto;
+            gap: 0;
+            position: relative;
+            clip-path: inset(0 -0.125rem 0 0);
+            width: max-content;
+        }
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            font-family: emoji, "Noto Emoji";
+            font-size: calc(var(--cell-size) * 0.9);
+            border: 0.0625rem solid var(--border-color);
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            user-select: none;
+        }
+        .visited, .current {
+            background-color: var(--bg-2);
+            color: var(--visited-fg);
+        }
+        .current::before,
+        .current::after,
+        .current > span::before,
+        .current > span::after {
+            content: "⏶";
+            pointer-events: none;
+            position: absolute;
+            font-size: calc(var(--cell-size) * 0.4);
+            color: var(--pointer-color);
+            z-index: 1;
+        }
+        .current::before {
+            /* up */
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .current::after {
+            /* down */
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) rotate(180deg);
+        }
+        .current > span::before {
+            /* left */
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+        }
+        .current > span::after {
+            /* right */
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+        }
+        #stats {
+            color: var(--text-color);
+            margin: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        #timer {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="stats">
+        Level: <span id="level">1</span> |
+        Moves: <span id="moves">0</span>
+    </div>
+    <div id="timer">5:00</div>
+    <div id="maze" class="grid"></div>
+    <button hidden id="reset-level">Reset to level 1</button>
+    <script src="index.js"></script>
+</body>
+</html>
