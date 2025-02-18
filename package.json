@@ -3,9 +3,9 @@
   "name": "rust-webpack-template",
   "version": "0.1.0",
   "scripts": {
-    "build": "command -v cargo | . ~/.cargo/env  && webpack --mode=production",
+    "build": "command -v cargo | . ./.npm/cargo/env && webpack --mode=production",
     "start": "webpack --mode=development & wrangler pages dev",
-    "prepare": "wget -qO- https://sh.rustup.rs | sh -s -- --default-toolchain nightly --profile minimal -y && . $HOME/.cargo/env && npm run build",
+    "prepare": "mkdir -p .npm && wget -qO- https://sh.rustup.rs | sh -s -- --default-toolchain nightly --profile minimal -y && . ./.npm/cargo/env && npm run build",
     "test": "cargo test && wasm-pack test --headless"
   },
   "type": "module",

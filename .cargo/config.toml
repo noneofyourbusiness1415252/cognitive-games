@@ -1,2 +1,7 @@
 [build]
 rustflags = ["--cfg=web_sys_unstable_apis"]
+target-dir = ".npm/target"
+
+[env]
+RUSTUP_HOME = { value = ".npm/rust" }
+CARGO_HOME = { value = ".npm/cargo" }
