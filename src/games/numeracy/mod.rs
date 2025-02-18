@@ -29,11 +29,30 @@ impl Numeracy {
             .unwrap()
             .dyn_into::<HtmlElement>()?;
 
-        Ok(Numeracy {
+        let game = Numeracy {
             state: Rc::new(RefCell::new(GameState::new())),
-            document,
+            document: document.clone(),
             container,
-        })
+        };
+
+        // Set up visibility change handler
+        let state = game.state.clone();
+        let doc = document.clone();
+        let visibility_callback = Closure::wrap(Box::new(move || {
+            let hidden = doc.hidden();
+            let mut game_state = state.borrow_mut();
+            game_state.is_visible = !hidden;
+            
+            if !hidden {
+                // When becoming visible, restart the current level
+                game_state.start_round();
+            }
+        }) as Box<dyn FnMut()>);
+
+        document.set_onvisibilitychange(Some(visibility_callback.as_ref().unchecked_ref()));
+        visibility_callback.forget();
+
+        Ok(game)
     }
 
     fn render_bubbles(&self) -> Result<(), JsValue> {
@@ -102,10 +121,14 @@ impl Numeracy {
         let state = self.state.borrow();
 
         if let Some(timer_elem) = self.document.get_element_by_id("timer") {
-            if let Some(remaining) = state.get_round_time_remaining() {
-                let seconds = (remaining / 1000.0) as u32;
-                let text = format!("{}:{:02}", seconds / 60, seconds % 60);
-                timer_elem.set_text_content(Some(&text));
+            if state.is_visible {
+                if let Some(remaining) = state.get_round_time_remaining() {
+                    let seconds = (remaining / 1000.0) as u32;
+                    let text = format!("{}:{:02}", seconds / 60, seconds % 60);
+                    timer_elem.set_text_content(Some(&text));
+                }
+            } else {
+                timer_elem.set_text_content(Some("Paused"));
             }
         }
         Ok(())
@@ -139,11 +162,14 @@ impl Numeracy {
     fn check_time_limits(&self) -> Result<(), JsValue> {
         {
             let mut state = self.state.borrow_mut();
-
-            if let Some(remaining) = state.get_round_time_remaining() {
-                if remaining <= 0.0 {
-                    state.update_score(false);
-                    state.start_round();
+            
+            // Only check time limits if the tab is visible
+            if state.is_visible {
+                if let Some(remaining) = state.get_round_time_remaining() {
+                    if remaining <= 0.0 {
+                        state.update_score(false);
+                        state.start_round();
+                    }
                 }
             }
         }

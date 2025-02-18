@@ -9,6 +9,7 @@ pub struct GameState {
     pub round_start: Option<f64>,
     pub level_start: Option<f64>,
     pub completed_rounds: u32,
+    pub is_visible: bool,
     performance: Performance,
     storage: Storage,
 }
@@ -34,6 +35,7 @@ impl GameState {
             round_start: None,
             level_start: None,
             completed_rounds: 0,
+            is_visible: true,
             performance,
             storage,
         }

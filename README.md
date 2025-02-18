@@ -44,7 +44,6 @@ cd cognitive-games
 
 # Install dependencies and build the project
 npm install
-npm run prepare
 ```
 
 ## Development
@@ -82,10 +81,17 @@ This will run both Rust unit tests and WebAssembly integration tests.
 - `src/games/numeracy/` - Numeracy game implementation
 - `src/games/perception/` - Maze game implementation
 - `static/` - HTML, CSS, and other static assets
-- `js/` - JavaScript entry point
+- `js/` - JavaScript entry point (Note: the project strictly uses Rust for game logic, not JavaScript)
 - `Cargo.toml` - Rust dependencies and configuration
 - `package.json` - Node.js dependencies and scripts
 - `webpack.config.js` - Webpack configuration
+
+## Colour Theme and Accessibility
+
+- **Dark Theme:** `#000` background  
+- **Light Theme:** `#000` text  
+- All other colours are chosen to be as dark as possible to ensure a contrast ratio of at least 3:1, using shades from the actual Mindgage cognitive test.  
+- All text is scaled to meet WCAG AA criteria for a minimum contrast ratio of 3:1.
 
 ## License
 
