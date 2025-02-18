@@ -20,7 +20,7 @@ pub fn main_js() -> Result<(), JsValue> {
 
     // Return the created instance rather than discarding it
     match path.as_str() {
-        "/numeracy.html" => {
+        "/numeracy" => {
             let game = Numeracy::new()?;
             game.start()?;
         }
