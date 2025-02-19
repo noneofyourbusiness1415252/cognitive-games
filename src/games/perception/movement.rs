@@ -96,7 +96,6 @@ impl Perception {
     }
 
     pub(super) fn try_move(&mut self, x: usize, y: usize) -> i32 {
-        #[cfg(debug_assertions)]
         if !self.is_adjacent(x, y) {
             return 0;
         }
