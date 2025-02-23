@@ -52,15 +52,15 @@
             display: inline-block;
             pointer-events: none;
         }
-        .rotate-0 { transform: rotate(0deg); }
-        .rotate-90 { transform: rotate(90deg); }
-        .rotate-180 { transform: rotate(180deg); }
-        .rotate-270 { transform: rotate(270deg); }
-        .reverse { transform: scaleX(-1); }
-        .reverse.rotate-0 { transform: rotate(0deg) scaleX(-1); }
-        .reverse.rotate-90 { transform: rotate(90deg) scaleX(-1); }
-        .reverse.rotate-180 { transform: rotate(180deg) scaleX(-1); }
-        .reverse.rotate-270 { transform: rotate(270deg) scaleX(-1); }
+        .pointing-right { transform: rotate(0deg); }
+        .pointing-down { transform: rotate(90deg); }
+        .pointing-left { transform: rotate(180deg); }
+        .pointing-up { transform: rotate(270deg); }
+        .flipped { transform: scaleX(-1); }
+        .flipped.pointing-right { transform: rotate(0deg) scaleX(-1); }
+        .flipped.pointing-down { transform: rotate(90deg) scaleX(-1); }
+        .flipped.pointing-left { transform: rotate(180deg) scaleX(-1); }
+        .flipped.pointing-up { transform: rotate(270deg) scaleX(-1); }
         .grid-container {
             position: relative;
             display: flex;

@@ -1,15 +1,17 @@
 mod tile;
 mod tile_generator;
 
+use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use tile::Direction;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, MouseEvent};
-use std::collections::HashSet;
+use std::{collections::HashSet, rc::Rc};
 use web_sys::{Document, HtmlElement, Window};
 use wasm_bindgen::JsCast;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use std::cell::RefCell;
 
 lazy_static! {
     static ref GAME_INSTANCE: Mutex<Option<MentalRotation>> = Mutex::new(None);
@@ -31,10 +33,10 @@ pub struct MentalRotation {
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
     pub fn new(level: usize) -> Self {
-        let grid_size = level;
+        let grid_size = level; // Revert to using level directly for grid size
         Self {
             level,
-            tiles: tile_generator::generate_initial_tiles(level),  // This function should now make arrows face South
+            tiles: tile_generator::generate_initial_tiles(grid_size),
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),
@@ -45,15 +47,15 @@ impl MentalRotation {
 
     fn get_arrow_classes(&self, tile: &tile::Tile) -> String {
         let rotation_class = match tile.rotation {
-            0 => "rotate-0",
-            90 => "rotate-90",
-            180 => "rotate-180",
-            270 => "rotate-270",
-            _ => "rotate-0",
+            0 => "pointing-right",
+            90 => "pointing-down",
+            180 => "pointing-left",
+            270 => "pointing-up",
+            _ => "pointing-right",
         };
         
         if tile.reversed {
-            format!("arrow {} reverse", rotation_class)
+            format!("arrow {} flipped", rotation_class)
         } else {
             format!("arrow {}", rotation_class)
         }
@@ -280,27 +282,33 @@ impl MentalRotation {
     }
 
     fn setup_timer(&self, window: &Window) -> Result<(), JsValue> {
-        let timer_element = window.document()
+        let timer_element = Rc::new(window.document()
             .unwrap()
             .query_selector(".timer")
             .unwrap()
-            .unwrap();
+            .unwrap());
             
-        let mut time = self.time_remaining;
-        let closure = Closure::wrap(Box::new(move || {
-            if time > 0 {
-                time -= 1;
-                let mins = time / 60;
-                let secs = time % 60;
-                timer_element.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
+        let time = Rc::new(RefCell::new(self.time_remaining));
+        
+        let timer_element_clone = timer_element.clone();
+        let time_clone = time.clone();
+        
+        let callback = Closure::wrap(Box::new(move || {
+            let mut time = time_clone.borrow_mut();
+            if *time > 0 {
+                *time -= 1;
+                let mins = *time / 60;
+                let secs = *time % 60;
+                timer_element_clone.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
             }
         }) as Box<dyn FnMut()>);
-        
+
         window.set_interval_with_callback_and_timeout_and_arguments_0(
-            closure.as_ref().unchecked_ref(),
+            callback.as_ref().unchecked_ref(),
             1000,
         )?;
-        closure.forget();
+        
+        callback.forget();
         
         Ok(())
     }
