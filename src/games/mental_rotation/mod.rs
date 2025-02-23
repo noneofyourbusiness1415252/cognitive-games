@@ -108,22 +108,67 @@ impl MentalRotation {
     fn trigger_win_animation(&self) {
         if let Some(window) = web_sys::window() {
             if let Some(document) = window.document() {
+                // Add animating class to prevent interaction
+                if let Some(container) = document.query_selector(".grid-container").ok().flatten() {
+                    let _ = container.class_list().add_1("animating");
+                }
                 if let Some(rocket) = document.query_selector(".rocket").ok().flatten() {
                     let _ = rocket.class_list().add_1("moving");
                 }
+                
+                // Progress to next level after animation
+                let next_level = self.level + 1;
+                let closure = Closure::once_into_js(move || {
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            // Remove animation classes first
+                            if let Some(container) = document.query_selector(".grid-container").ok().flatten() {
+                                let _ = container.class_list().remove_1("animating");
+                            }
+                            
+                            // Create new game instance first
+                            let next_game = MentalRotation::new(next_level);
+                            
+                            // Update game instance
+                            if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                                *lock = Some(next_game);
+                            }
+                            
+                            // Update level display
+                            if let Some(level_display) = document.query_selector(".level").ok().flatten() {
+                                level_display.set_text_content(Some(&format!("Level {}", next_level)));
+                            }
+                            
+                            // Start new level
+                            if let Ok(lock) = GAME_INSTANCE.try_lock() {
+                                if let Some(game) = &*lock {
+                                    let _ = game.start();
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    closure.as_ref().unchecked_ref(),
+                    3000 // Match animation duration
+                );
             }
         }
     }
 
     pub fn start(&self) -> Result<(), JsValue> {
-        *GAME_INSTANCE.lock().unwrap() = Some(self.clone());
-        
+        // Setup grid and timer first
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         
         self.setup_grid(&document)?;
         self.setup_timer(&window)?;
-        self.load_state();
+        
+        // Update game instance last
+        if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+            *lock = Some(self.clone());
+        }
         
         Ok(())
     }

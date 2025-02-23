@@ -68,6 +68,14 @@
             justify-content: center;
             padding: 0 3rem;  /* Increased padding for emojis */
             overflow: visible;  /* Allow rocket to move outside */
+            transition: none;  /* Remove transition since we don't need it */
+        }
+        .grid-container.animating {
+            pointer-events: none;
+        }
+        .level {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
         @keyframes moveRocket {
             from {
@@ -80,12 +88,14 @@
 
         .rocket.moving {
             animation: moveRocket 3s linear forwards;
+            animation-fill-mode: forwards;
         }
         /* Remove path-cell class entirely */
     </style>
 </head>
 <body>
     <div class="game-container">
+        <div class="level">Level 1</div>
         <div class="timer">3:00</div>
         <div class="grid-container">
             <span class="rocket">🚀</span>
