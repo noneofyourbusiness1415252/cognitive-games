@@ -2,6 +2,7 @@ mod tile;
 mod tile_generator;
 
 use serde::{Deserialize, Serialize};
+use tile::Direction;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, MouseEvent};
 use std::collections::HashSet;
@@ -30,10 +31,10 @@ pub struct MentalRotation {
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
     pub fn new(level: usize) -> Self {
-        let grid_size = level;  // Grid size is now equal to level
+        let grid_size = level;
         Self {
             level,
-            tiles: tile_generator::generate_initial_tiles(level),  // Pass level to generator
+            tiles: tile_generator::generate_initial_tiles(level),  // This function should now make arrows face South
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),
@@ -65,7 +66,11 @@ impl MentalRotation {
             self.reverse_tile(tile_idx);
         }
         self.moves += 1;
-        self.check_win();
+        
+        // Check win after every move
+        if self.check_win() {
+            self.trigger_win_animation();
+        }
     }
     
     fn rotate_tile(&mut self, tile_idx: usize) {
@@ -81,8 +86,33 @@ impl MentalRotation {
     }
 
     fn check_win(&self) -> bool {
-        // Basic implementation - will be expanded later
-        false
+        if let Some(tile) = self.tiles.iter().find(|t| t.cells.contains(&self.start_pos)) {
+            let effective_direction = tile.get_effective_direction();
+            // Debug print to help diagnose
+            web_sys::console::log_1(&format!("Direction: {:?}", effective_direction).into());
+            
+            // For level 1, must point east
+            if self.level == 1 {
+                match effective_direction {
+                    Direction::East => true,
+                    _ => false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn trigger_win_animation(&self) {
+        if let Some(window) = web_sys::window() {
+            if let Some(document) = window.document() {
+                if let Some(rocket) = document.query_selector(".rocket").ok().flatten() {
+                    let _ = rocket.class_list().add_1("moving");
+                }
+            }
+        }
     }
 
     pub fn start(&self) -> Result<(), JsValue> {

@@ -4,11 +4,11 @@ use serde::{Serialize, Deserialize};
 pub struct Tile {
     pub cells: Vec<(usize, usize)>,
     pub arrows: Vec<Direction>,
-    pub rotation: u16,  // Changed from u8 to u16
+    pub rotation: i32,  // Degrees
     pub reversed: bool,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
 pub enum Direction {
     North,
     South,
@@ -75,17 +75,29 @@ impl Tile {
         }
         
         self.cells = new_cells;
-
-        // Rotate arrows
-        for arrow in &mut self.arrows {
-            *arrow = arrow.rotate_90();
-        }
+        // Remove arrow rotation since we handle it in get_effective_direction
     }
 
     pub fn reverse(&mut self) {
         self.reversed = !self.reversed;
-        for arrow in &mut self.arrows {
-            *arrow = arrow.reversed();
+        // Remove arrow reversal since we handle it in get_effective_direction
+    }
+
+    pub fn get_effective_direction(&self) -> Direction {
+        // Convert rotation to number of 90-degree turns
+        let turns = ((self.rotation % 360) / 90) as usize;
+        
+        // Apply rotations
+        let mut dir = self.arrows[0];
+        for _ in 0..turns {
+            dir = dir.rotate_90();
+        }
+        
+        // Apply reversal if needed
+        if self.reversed {
+            dir.reversed()
+        } else {
+            dir
         }
     }
 }
