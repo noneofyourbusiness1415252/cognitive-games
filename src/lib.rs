@@ -2,6 +2,7 @@ mod games;
 
 pub use games::numeracy::Numeracy;
 pub use games::perception::Perception;
+pub use games::mental_rotation::MentalRotation;
 use wasm_bindgen::{prelude::*, JsValue};
 
 #[cfg(feature = "wee_alloc")]
@@ -22,6 +23,10 @@ pub fn main_js() -> Result<(), JsValue> {
     match path.as_str() {
         "/numeracy" => {
             let game = Numeracy::new()?;
+            game.start()?;
+        }
+        "/mental-rotation" => {
+            let game = MentalRotation::new(1);
             game.start()?;
         }
         _ => {

@@ -40,12 +40,32 @@
             position: absolute;
             font-size: 1.5rem;
         }
+        .arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .rotate-0 { transform: rotate(0deg); }
+        .rotate-90 { transform: rotate(90deg); }
+        .rotate-180 { transform: rotate(180deg); }
+        .rotate-270 { transform: rotate(270deg); }
+        .reverse { transform: scaleX(-1); }
+        .grid-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 2.25rem;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <div class="timer">3:00</div>
-        <div id="grid" class="grid"></div>
+        <div class="grid-container">
+            <span class="rocket">🚀</span>
+            <div id="grid" class="grid"></div>
+            <span class="earth">🌍</span>
+        </div>
         <button id="reset">Reset Level</button>
     </div>
     <script src="index.js"></script>
