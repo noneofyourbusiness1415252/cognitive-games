@@ -1,13 +1,21 @@
 mod tile;
 mod tile_generator;
 
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, MouseEvent};
 use std::collections::HashSet;
 use web_sys::{Document, HtmlElement, Window};
 use wasm_bindgen::JsCast;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref GAME_INSTANCE: Mutex<Option<MentalRotation>> = Mutex::new(None);
+}
 
 #[wasm_bindgen]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MentalRotation {
     level: usize,
     tiles: Vec<tile::Tile>,
@@ -78,6 +86,8 @@ impl MentalRotation {
     }
 
     pub fn start(&self) -> Result<(), JsValue> {
+        *GAME_INSTANCE.lock().unwrap() = Some(self.clone());
+        
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         
@@ -97,6 +107,7 @@ impl MentalRotation {
                 let cell = document.create_element("div")?;
                 cell.set_class_name("cell");
                 
+                // Handle tiles
                 for (tile_idx, tile) in self.tiles.iter().enumerate() {
                     if tile.cells.contains(&(x, y)) {
                         cell.set_class_name("cell tile");
@@ -109,16 +120,29 @@ impl MentalRotation {
                     }
                 }
                 
-                if x == self.start_pos.0 && y == self.start_pos.1 {
-                    let arrow = document.create_element("span")?;
-                    arrow.set_class_name("arrow");
-                    arrow.set_text_content(Some("➔"));
-                    cell.append_child(&arrow)?;
-                }
-                
                 grid.append_child(&cell)?;
             }
         }
+
+        // Remove any existing start/end indicators
+        if let Some(existing_rocket) = document.query_selector(".rocket")? {
+            existing_rocket.remove();
+        }
+        if let Some(existing_earth) = document.query_selector(".earth")? {
+            existing_earth.remove();
+        }
+
+        // Add rocket and earth at correct positions
+        let grid_container = document.query_selector(".grid-container")?.unwrap();
+        let rocket = document.create_element("span")?;
+        rocket.set_class_name("rocket");
+        rocket.set_text_content(Some("🚀"));
+        grid_container.append_child(&rocket)?;
+
+        let earth = document.create_element("span")?;
+        earth.set_class_name("earth");
+        earth.set_text_content(Some("🌍"));
+        grid_container.append_child(&earth)?;
 
         // Add click handlers
         let grid_clone = grid.clone();
@@ -127,8 +151,11 @@ impl MentalRotation {
                 if let Some(cell) = target.dyn_ref::<Element>() {
                     if let Some(tile_idx) = cell.get_attribute("data-tile") {
                         if let Ok(idx) = tile_idx.parse::<usize>() {
-                            // Get game instance and handle click
-                            // TODO: Implement instance retrieval
+                            if let Some(mut game) = GAME_INSTANCE.lock().unwrap().take() {
+                                game.handle_click(event, idx);
+                                game.save_state();
+                                *GAME_INSTANCE.lock().unwrap() = Some(game);
+                            }
                         }
                     }
                 }
@@ -151,11 +178,14 @@ impl MentalRotation {
             .unwrap()
             .unwrap();
             
-        let time = self.time_remaining;
+        let mut time = self.time_remaining;
         let closure = Closure::wrap(Box::new(move || {
-            let mins = time / 60;
-            let secs = time % 60;
-            timer_element.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
+            if time > 0 {
+                time -= 1;
+                let mins = time / 60;
+                let secs = time % 60;
+                timer_element.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
+            }
         }) as Box<dyn FnMut()>);
         
         window.set_interval_with_callback_and_timeout_and_arguments_0(
@@ -168,11 +198,23 @@ impl MentalRotation {
     }
 
     fn load_state(&self) {
-        // TODO: Implement state loading from localStorage
+        if let Some(window) = web_sys::window() {
+            if let Some(storage) = window.local_storage().ok().flatten() {
+                if let Ok(Some(state)) = storage.get_item("mental_rotation_state") {
+                    if let Ok(game) = serde_json::from_str(&state) {
+                        *GAME_INSTANCE.lock().unwrap() = Some(game);
+                    }
+                }
+            }
+        }
     }
 
     fn save_state(&self) {
-        // TODO: Implement state saving to localStorage
+        if let Some(window) = web_sys::window() {
+            if let Some(storage) = window.local_storage().ok().flatten() {
+                let _ = storage.set_item("mental_rotation_state", &serde_json::to_string(self).unwrap());
+            }
+        }
     }
 
     #[wasm_bindgen(getter)]
