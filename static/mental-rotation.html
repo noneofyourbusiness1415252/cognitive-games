@@ -28,6 +28,7 @@
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
+            cursor: pointer; /* Show clickable cursor */
         }
         .tile {
             background: var(--bg-2);
@@ -46,13 +47,16 @@
         }
         .arrow {
             display: inline-block;
-            transition: transform 0.2s;
+            pointer-events: none; /* Make arrow clicks pass through to cell */
         }
         .rotate-0 { transform: rotate(0deg); }
         .rotate-90 { transform: rotate(90deg); }
         .rotate-180 { transform: rotate(180deg); }
         .rotate-270 { transform: rotate(270deg); }
-        .reverse { transform: scaleX(-1); }
+        .reverse.rotate-0 { transform: rotate(0deg) scaleX(-1); }
+        .reverse.rotate-90 { transform: rotate(90deg) scaleX(-1); }
+        .reverse.rotate-180 { transform: rotate(180deg) scaleX(-1); }
+        .reverse.rotate-270 { transform: rotate(270deg) scaleX(-1); }
         .grid-container {
             position: relative;
             display: flex;

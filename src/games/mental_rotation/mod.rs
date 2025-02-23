@@ -52,7 +52,7 @@ impl MentalRotation {
         };
         
         if tile.reversed {
-            format!("arrow {} reverse", rotation_class)
+            format!("arrow reverse {}", rotation_class)
         } else {
             format!("arrow {}", rotation_class)
         }
@@ -102,6 +102,19 @@ impl MentalRotation {
         let grid = document.get_element_by_id("grid").unwrap();
         grid.set_attribute("style", &format!("grid-template-columns: repeat({}, 3rem)", self.grid_size))?;
         
+        // Add contextmenu prevention using closure
+        let context_callback = Closure::wrap(Box::new(|e: Event| {
+            e.prevent_default();
+            e.stop_propagation();
+        }) as Box<dyn FnMut(Event)>);
+        
+        grid.add_event_listener_with_callback(
+            "contextmenu",
+            context_callback.as_ref().unchecked_ref(),
+        )?;
+        context_callback.forget();
+
+        // Setup grid cells
         for y in 0..self.grid_size {
             for x in 0..self.grid_size {
                 let cell = document.create_element("div")?;
@@ -144,25 +157,42 @@ impl MentalRotation {
         earth.set_text_content(Some("🌍"));
         grid_container.append_child(&earth)?;
 
-        // Add click handlers
-        let grid_clone = grid.clone();
+        // Add click handler with proper event delegation
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
-            if let Some(target) = event.target() {
-                if let Some(cell) = target.dyn_ref::<Element>() {
-                    if let Some(tile_idx) = cell.get_attribute("data-tile") {
-                        if let Ok(idx) = tile_idx.parse::<usize>() {
-                            if let Some(mut game) = GAME_INSTANCE.lock().unwrap().take() {
-                                game.handle_click(event, idx);
-                                game.save_state();
-                                *GAME_INSTANCE.lock().unwrap() = Some(game);
+            event.prevent_default();
+            let target = event.target().unwrap();
+            let element = target.dyn_ref::<Element>().unwrap();
+            
+            // Find the closest cell element
+            let cell = if element.class_list().contains("cell") {
+                element.clone()
+            } else if let Some(cell) = element.closest(".cell").unwrap() {
+                cell
+            } else {
+                return;
+            };
+
+            if let Some(tile_idx) = cell.get_attribute("data-tile") {
+                if let Ok(idx) = tile_idx.parse::<usize>() {
+                    // Use try_lock() to avoid panic
+                    if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                        if let Some(mut game) = lock.take() {
+                            game.handle_click(event, idx);
+                            // Update the visual state after rotation
+                            if let Some(arrow) = cell.query_selector(".arrow").ok().flatten() {
+                                if let Some(tile) = game.tiles.get(idx) {
+                                    arrow.set_class_name(&game.get_arrow_classes(tile));
+                                }
                             }
+                            game.save_state();
+                            *lock = Some(game);
                         }
                     }
                 }
             }
         }) as Box<dyn FnMut(MouseEvent)>);
         
-        grid_clone.add_event_listener_with_callback(
+        grid.add_event_listener_with_callback(
             "mousedown",
             click_callback.as_ref().unchecked_ref(),
         )?;
