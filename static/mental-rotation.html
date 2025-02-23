@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Mental Rotation - Cognitive Games</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+        }
+        .timer {
+            font-size: 1.5rem;
+        }
+        .grid {
+            display: grid;
+            gap: 0;
+            background: var(--bg-color);
+        }
+        .cell {
+            width: 2.25rem;
+            height: 2.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .tile {
+            background: var(--bg-2);
+        }
+        .rocket {
+            position: absolute;
+            font-size: 1.5rem;
+        }
+        .earth {
+            position: absolute;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="timer">3:00</div>
+        <div id="grid" class="grid"></div>
+        <button id="reset">Reset Level</button>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>

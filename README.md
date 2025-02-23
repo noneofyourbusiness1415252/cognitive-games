@@ -29,6 +29,18 @@ A procedurally generated maze game testing spatial awareness and planning.
 - Automatic progress saving
 - Dark mode support
 
+### Mental Rotation
+A spatial reasoning game where players create paths using rotatable polyomino tiles.
+
+**Features:**
+- Polyomino tiles with directional arrows
+- Left-click to rotate tiles 90° clockwise
+- Right-click to reverse arrow directions
+- Progressive difficulty with increasing grid size
+- 3-minute time limit per level
+- Auto-save functionality
+- Smooth rocket animation on completion
+
 ## Prerequisites
 
 - Rust (nightly toolchain)
