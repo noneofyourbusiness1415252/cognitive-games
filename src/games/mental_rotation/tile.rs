@@ -33,6 +33,32 @@ impl Direction {
             Direction::SouthWest => Direction::NorthEast,
         }
     }
+
+    pub fn rotate_90(&self) -> Self {
+        match self {
+            Direction::North => Direction::East,
+            Direction::South => Direction::West,
+            Direction::East => Direction::South,
+            Direction::West => Direction::North,
+            Direction::NorthEast => Direction::SouthEast,
+            Direction::NorthWest => Direction::NorthEast,
+            Direction::SouthEast => Direction::SouthWest,
+            Direction::SouthWest => Direction::NorthWest,
+        }
+    }
+
+    pub fn to_angle(&self) -> f64 {
+        match self {
+            Direction::North => 270.0,
+            Direction::South => 90.0,
+            Direction::East => 0.0,
+            Direction::West => 180.0,
+            Direction::NorthEast => 315.0,
+            Direction::NorthWest => 225.0,
+            Direction::SouthEast => 45.0,
+            Direction::SouthWest => 135.0,
+        }
+    }
 }
 
 impl Tile {
@@ -49,6 +75,11 @@ impl Tile {
         }
         
         self.cells = new_cells;
+
+        // Rotate arrows
+        for arrow in &mut self.arrows {
+            *arrow = arrow.rotate_90();
+        }
     }
 
     pub fn reverse(&mut self) {

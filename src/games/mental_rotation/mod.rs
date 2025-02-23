@@ -52,7 +52,7 @@ impl MentalRotation {
         };
         
         if tile.reversed {
-            format!("arrow reverse {}", rotation_class)
+            format!("arrow {} reverse", rotation_class)
         } else {
             format!("arrow {}", rotation_class)
         }
@@ -124,6 +124,7 @@ impl MentalRotation {
                 for (tile_idx, tile) in self.tiles.iter().enumerate() {
                     if tile.cells.contains(&(x, y)) {
                         cell.set_class_name("cell tile");
+                        cell.set_attribute("data-position", &format!("{}{}", x, y))?;
                         let arrow = document.create_element("span")?;
                         arrow.set_class_name(&self.get_arrow_classes(tile));
                         arrow.set_text_content(Some("➔"));
@@ -157,7 +158,8 @@ impl MentalRotation {
         earth.set_text_content(Some("🌍"));
         grid_container.append_child(&earth)?;
 
-        // Add click handler with proper event delegation
+        // Clone document for use in callback
+        let document = document.clone();
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
             event.prevent_default();
             let target = event.target().unwrap();
@@ -174,14 +176,15 @@ impl MentalRotation {
 
             if let Some(tile_idx) = cell.get_attribute("data-tile") {
                 if let Ok(idx) = tile_idx.parse::<usize>() {
-                    // Use try_lock() to avoid panic
                     if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
                         if let Some(mut game) = lock.take() {
                             game.handle_click(event, idx);
-                            // Update the visual state after rotation
-                            if let Some(arrow) = cell.query_selector(".arrow").ok().flatten() {
-                                if let Some(tile) = game.tiles.get(idx) {
-                                    arrow.set_class_name(&game.get_arrow_classes(tile));
+                            if let Some(tile) = game.tiles.get(idx) {
+                                for &(x, y) in &tile.cells {
+                                    let selector = format!(".cell[data-position='{}{}'] .arrow", x, y);
+                                    if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
+                                        arrow.set_class_name(&game.get_arrow_classes(tile));
+                                    }
                                 }
                             }
                             game.save_state();

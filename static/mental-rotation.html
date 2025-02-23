@@ -47,12 +47,13 @@
         }
         .arrow {
             display: inline-block;
-            pointer-events: none; /* Make arrow clicks pass through to cell */
+            pointer-events: none;
         }
         .rotate-0 { transform: rotate(0deg); }
         .rotate-90 { transform: rotate(90deg); }
         .rotate-180 { transform: rotate(180deg); }
         .rotate-270 { transform: rotate(270deg); }
+        .reverse { transform: scaleX(-1); }
         .reverse.rotate-0 { transform: rotate(0deg) scaleX(-1); }
         .reverse.rotate-90 { transform: rotate(90deg) scaleX(-1); }
         .reverse.rotate-180 { transform: rotate(180deg) scaleX(-1); }
