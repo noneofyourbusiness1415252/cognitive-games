@@ -9,7 +9,7 @@ pub fn generate_initial_tiles(grid_size: usize) -> Vec<Tile> {
             tiles.push(Tile {
                 cells: vec![(0, 0)],
                 arrows: vec![Direction::East],
-                rotation: 0,
+                rotation: 90,
                 reversed: false,
             });
         },

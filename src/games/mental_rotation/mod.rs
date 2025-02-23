@@ -1,5 +1,6 @@
 mod tile;
 mod tile_generator;
+mod timer;
 
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
@@ -177,6 +178,12 @@ impl MentalRotation {
 
     fn setup_grid(&self, document: &Document) -> Result<(), JsValue> {
         let grid = document.get_element_by_id("grid").unwrap();
+        
+        // Clear existing grid content
+        while let Some(child) = grid.first_child() {
+            grid.remove_child(&child)?;
+        }
+        
         grid.set_attribute("style", &format!("grid-template-columns: repeat({}, 3rem)", self.grid_size))?;
         
         // Add contextmenu prevention using closure
@@ -282,35 +289,7 @@ impl MentalRotation {
     }
 
     fn setup_timer(&self, window: &Window) -> Result<(), JsValue> {
-        let timer_element = Rc::new(window.document()
-            .unwrap()
-            .query_selector(".timer")
-            .unwrap()
-            .unwrap());
-            
-        let time = Rc::new(RefCell::new(self.time_remaining));
-        
-        let timer_element_clone = timer_element.clone();
-        let time_clone = time.clone();
-        
-        let callback = Closure::wrap(Box::new(move || {
-            let mut time = time_clone.borrow_mut();
-            if *time > 0 {
-                *time -= 1;
-                let mins = *time / 60;
-                let secs = *time % 60;
-                timer_element_clone.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
-            }
-        }) as Box<dyn FnMut()>);
-
-        window.set_interval_with_callback_and_timeout_and_arguments_0(
-            callback.as_ref().unchecked_ref(),
-            1000,
-        )?;
-        
-        callback.forget();
-        
-        Ok(())
+        timer::setup_timer(window, self.time_remaining)
     }
 
     fn load_state(&self) {
