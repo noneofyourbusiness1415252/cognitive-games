@@ -2,6 +2,7 @@ mod tile;
 mod level_generator;
 mod grid;
 mod timer;
+mod rotation;
 
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
@@ -29,31 +30,30 @@ pub struct MentalRotation {
     end_pos: (usize, usize),
     moves: usize,
     time_remaining: u32,
-    #[serde(skip)]
-    processing_click: bool,
-    #[serde(skip)]
-    last_click_time: f64,  // Add timestamp tracking
+    original_positions: Vec<Vec<(usize, usize)>>,  // Store initial tile positions
 }
 
 #[wasm_bindgen]
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
     pub fn new(level: usize) -> Self {
+        let tiles = level_generator::generate_level(level);
+        let original_positions = tiles.iter().map(|t| t.cells.clone()).collect();
+        
         let grid_size = level;
         Self {
             level,
-            tiles: level_generator::generate_level(level),
+            tiles,
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),
             moves: 0,
             time_remaining: 180,
-            processing_click: false,
-            last_click_time: 0.0,
+            original_positions,
         }
     }
 
-    fn get_arrow_classes(&self, tile: &tile::Tile) -> String {
+    fn get_arrow_classes(&self, tile: &tile::Tile, tile_idx: usize) -> String {
         let rotation_class = match tile.rotation {
             0 => "pointing-right",
             90 => "pointing-down",
@@ -69,6 +69,20 @@ impl MentalRotation {
         }
     }
 
+    pub fn handle_click(&mut self, event: MouseEvent, tile_idx: usize) {
+        if event.button() == 0 {
+            self.rotate_tile(tile_idx);
+        } else if event.button() == 2 {
+            self.reverse_tile(tile_idx);
+        }
+        self.moves += 1;
+        
+        // Check win after every move
+        if self.check_win() {
+            self.trigger_win_animation();
+        }
+    }
+    
     fn rotate_tile(&mut self, tile_idx: usize) {
         if let Some(tile) = self.tiles.get_mut(tile_idx) {
             tile.rotate();
@@ -122,19 +136,12 @@ impl MentalRotation {
                                 let _ = container.class_list().remove_1("animating");
                             }
                             
-                            // Create new game instance and immediately save state
+                            // Create new game instance first
                             let next_game = MentalRotation::new(next_level);
-                            
-                            if let Some(storage) = window.local_storage().ok().flatten() {
-                                let _ = storage.set_item(
-                                    "mental_rotation_state", 
-                                    &serde_json::to_string(&next_game).unwrap()
-                                );
-                            }
                             
                             // Update game instance
                             if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
-                                *lock = Some(next_game.clone());
+                                *lock = Some(next_game);
                             }
                             
                             // Update level display
@@ -210,7 +217,7 @@ impl MentalRotation {
                         cell.set_class_name("cell tile");
                         cell.set_attribute("data-position", &format!("{}{}", x, y))?;
                         let arrow = document.create_element("span")?;
-                        arrow.set_class_name(&self.get_arrow_classes(tile));
+                        arrow.set_class_name(&self.get_arrow_classes(tile, tile_idx));
                         arrow.set_text_content(Some("➔"));
                         cell.append_child(&arrow)?;
                         cell.set_attribute("data-tile", &tile_idx.to_string())?;
@@ -246,72 +253,46 @@ impl MentalRotation {
         let document = document.clone();
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
             event.prevent_default();
-            event.stop_propagation();
-
-            // Only handle events from the actual tile element
             let target = event.target().unwrap();
             let element = target.dyn_ref::<Element>().unwrap();
             
-            if !element.class_list().contains("tile") {
+            // Find the closest cell element
+            let cell = if element.class_list().contains("cell") {
+                element.clone()
+            } else if let Some(cell) = element.closest(".cell").unwrap() {
+                cell
+            } else {
                 return;
-            }
-
-            let tile_idx = match element.get_attribute("data-tile") {
-                Some(idx_str) => idx_str.parse::<usize>().ok(),
-                None => None,
             };
 
-            if let Some(idx) = tile_idx {
-                if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
-                    if let Some(mut game) = lock.take() {
-                        if game.handle_tile_interaction(event, idx) {
+            if let Some(tile_idx) = cell.get_attribute("data-tile") {
+                if let Ok(idx) = tile_idx.parse::<usize>() {
+                    if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                        if let Some(mut game) = lock.take() {
+                            game.handle_click(event, idx);
                             if let Some(tile) = game.tiles.get(idx) {
                                 for &(x, y) in &tile.cells {
                                     let selector = format!(".cell[data-position='{}{}'] .arrow", x, y);
                                     if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
-                                        arrow.set_class_name(&game.get_arrow_classes(tile));
+                                        arrow.set_class_name(&game.get_arrow_classes(tile, idx));
                                     }
                                 }
                             }
                             game.save_state();
+                            *lock = Some(game);
                         }
-                        *lock = Some(game);
                     }
                 }
             }
         }) as Box<dyn FnMut(MouseEvent)>);
-
-        // Attach to grid element only
+        
         grid.add_event_listener_with_callback(
             "mousedown",
             click_callback.as_ref().unchecked_ref(),
         )?;
         click_callback.forget();
-
-        Ok(())
-    }
-
-    fn handle_tile_interaction(&mut self, event: MouseEvent, idx: usize) -> bool {
-        // Debounce clicks by checking timestamp
-        let now = js_sys::Date::now();
-        if now - self.last_click_time < 100.0 {  // 100ms debounce
-            return false;
-        }
-        self.last_click_time = now;
-
-        // Process the click
-        if event.button() == 0 {
-            self.rotate_tile(idx);
-        } else if event.button() == 2 {
-            self.reverse_tile(idx);
-        }
-        self.moves += 1;
-
-        if self.check_win() {
-            self.trigger_win_animation();
-        }
         
-        true
+        Ok(())
     }
 
     fn setup_timer(&self, window: &Window) -> Result<(), JsValue> {

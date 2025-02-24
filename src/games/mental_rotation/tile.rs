@@ -37,13 +37,13 @@ impl Direction {
     pub fn rotate_90(&self) -> Self {
         match self {
             Direction::North => Direction::East,
-            Direction::South => Direction::West,
             Direction::East => Direction::South,
+            Direction::South => Direction::West, 
             Direction::West => Direction::North,
             Direction::NorthEast => Direction::SouthEast,
-            Direction::NorthWest => Direction::NorthEast,
             Direction::SouthEast => Direction::SouthWest,
             Direction::SouthWest => Direction::NorthWest,
+            Direction::NorthWest => Direction::NorthEast,
         }
     }
 
@@ -64,28 +64,7 @@ impl Direction {
 impl Tile {
     pub fn rotate(&mut self) {
         self.rotation = (self.rotation + 90) % 360;
-        
-        // Convert coordinates to i32 for safe arithmetic
-        let cells_i32: Vec<(i32, i32)> = self.cells.iter()
-            .map(|&(x, y)| (x as i32, y as i32))
-            .collect();
-        
-        // Find bounding box for rotation
-        let max_coord = cells_i32.iter()
-            .map(|&(x, y)| x.max(y))
-            .max()
-            .unwrap_or(0);
-            
-        // Rotate each cell's position around center
-        let new_cells = cells_i32.iter()
-            .map(|&(x, y)| {
-                let new_x = y;
-                let new_y = max_coord - x;
-                (new_x as usize, new_y as usize)
-            })
-            .collect();
-        
-        self.cells = new_cells;
+        // Remove coordinate transformation - let CSS handle visual rotation
     }
 
     pub fn reverse(&mut self) {
