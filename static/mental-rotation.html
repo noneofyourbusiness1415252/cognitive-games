@@ -29,10 +29,14 @@
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
-            cursor: pointer; /* Show clickable cursor */
+            cursor: default;
+            pointer-events: none;
+            user-select: none;
         }
         .tile {
             background: var(--bg-2);
+            pointer-events: auto;
+            cursor: pointer;
         }
         .rocket {
             position: absolute;
@@ -51,6 +55,7 @@
         .arrow {
             display: inline-block;
             pointer-events: none;
+            user-select: none;
         }
         .pointing-right { transform: rotate(0deg); }
         .pointing-down { transform: rotate(90deg); }

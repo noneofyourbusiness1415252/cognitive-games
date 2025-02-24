@@ -29,6 +29,10 @@ pub struct MentalRotation {
     end_pos: (usize, usize),
     moves: usize,
     time_remaining: u32,
+    #[serde(skip)]
+    processing_click: bool,
+    #[serde(skip)]
+    last_click_time: f64,  // Add timestamp tracking
 }
 
 #[wasm_bindgen]
@@ -44,6 +48,8 @@ impl MentalRotation {
             end_pos: (grid_size-1, grid_size/2),
             moves: 0,
             time_remaining: 180,
+            processing_click: false,
+            last_click_time: 0.0,
         }
     }
 
@@ -63,20 +69,6 @@ impl MentalRotation {
         }
     }
 
-    pub fn handle_click(&mut self, event: MouseEvent, tile_idx: usize) {
-        if event.button() == 0 {
-            self.rotate_tile(tile_idx);
-        } else if event.button() == 2 {
-            self.reverse_tile(tile_idx);
-        }
-        self.moves += 1;
-        
-        // Check win after every move
-        if self.check_win() {
-            self.trigger_win_animation();
-        }
-    }
-    
     fn rotate_tile(&mut self, tile_idx: usize) {
         if let Some(tile) = self.tiles.get_mut(tile_idx) {
             tile.rotate();
@@ -247,23 +239,25 @@ impl MentalRotation {
         let document = document.clone();
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
             event.prevent_default();
+            event.stop_propagation();
+
+            // Only handle events from the actual tile element
             let target = event.target().unwrap();
             let element = target.dyn_ref::<Element>().unwrap();
             
-            // Find the closest cell element
-            let cell = if element.class_list().contains("cell") {
-                element.clone()
-            } else if let Some(cell) = element.closest(".cell").unwrap() {
-                cell
-            } else {
+            if !element.class_list().contains("tile") {
                 return;
+            }
+
+            let tile_idx = match element.get_attribute("data-tile") {
+                Some(idx_str) => idx_str.parse::<usize>().ok(),
+                None => None,
             };
 
-            if let Some(tile_idx) = cell.get_attribute("data-tile") {
-                if let Ok(idx) = tile_idx.parse::<usize>() {
-                    if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
-                        if let Some(mut game) = lock.take() {
-                            game.handle_click(event, idx);
+            if let Some(idx) = tile_idx {
+                if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                    if let Some(mut game) = lock.take() {
+                        if game.handle_tile_interaction(event, idx) {
                             if let Some(tile) = game.tiles.get(idx) {
                                 for &(x, y) in &tile.cells {
                                     let selector = format!(".cell[data-position='{}{}'] .arrow", x, y);
@@ -273,20 +267,44 @@ impl MentalRotation {
                                 }
                             }
                             game.save_state();
-                            *lock = Some(game);
                         }
+                        *lock = Some(game);
                     }
                 }
             }
         }) as Box<dyn FnMut(MouseEvent)>);
-        
+
+        // Attach to grid element only
         grid.add_event_listener_with_callback(
             "mousedown",
             click_callback.as_ref().unchecked_ref(),
         )?;
         click_callback.forget();
-        
+
         Ok(())
+    }
+
+    fn handle_tile_interaction(&mut self, event: MouseEvent, idx: usize) -> bool {
+        // Debounce clicks by checking timestamp
+        let now = js_sys::Date::now();
+        if now - self.last_click_time < 100.0 {  // 100ms debounce
+            return false;
+        }
+        self.last_click_time = now;
+
+        // Process the click
+        if event.button() == 0 {
+            self.rotate_tile(idx);
+        } else if event.button() == 2 {
+            self.reverse_tile(idx);
+        }
+        self.moves += 1;
+
+        if self.check_win() {
+            self.trigger_win_animation();
+        }
+        
+        true
     }
 
     fn setup_timer(&self, window: &Window) -> Result<(), JsValue> {
