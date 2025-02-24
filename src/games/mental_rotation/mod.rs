@@ -1,5 +1,6 @@
 mod tile;
-mod tile_generator;
+mod level_generator;
+mod grid;
 mod timer;
 
 use js_sys::Function;
@@ -34,10 +35,10 @@ pub struct MentalRotation {
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
     pub fn new(level: usize) -> Self {
-        let grid_size = level; // Revert to using level directly for grid size
+        let grid_size = level;
         Self {
             level,
-            tiles: tile_generator::generate_initial_tiles(grid_size),
+            tiles: level_generator::generate_level(level),
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),

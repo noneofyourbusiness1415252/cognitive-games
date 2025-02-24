@@ -65,17 +65,27 @@ impl Tile {
     pub fn rotate(&mut self) {
         self.rotation = (self.rotation + 90) % 360;
         
-        // Create a new Vec to store rotated positions
-        let size = self.cells.len();
-        let mut new_cells = Vec::with_capacity(size);
+        // Convert coordinates to i32 for safe arithmetic
+        let cells_i32: Vec<(i32, i32)> = self.cells.iter()
+            .map(|&(x, y)| (x as i32, y as i32))
+            .collect();
         
-        // Rotate each cell's position
-        for (x, y) in &self.cells {
-            new_cells.push((*y, size - 1 - *x));
-        }
+        // Find bounding box for rotation
+        let max_coord = cells_i32.iter()
+            .map(|&(x, y)| x.max(y))
+            .max()
+            .unwrap_or(0);
+            
+        // Rotate each cell's position around center
+        let new_cells = cells_i32.iter()
+            .map(|&(x, y)| {
+                let new_x = y;
+                let new_y = max_coord - x;
+                (new_x as usize, new_y as usize)
+            })
+            .collect();
         
         self.cells = new_cells;
-        // Remove arrow rotation since we handle it in get_effective_direction
     }
 
     pub fn reverse(&mut self) {
