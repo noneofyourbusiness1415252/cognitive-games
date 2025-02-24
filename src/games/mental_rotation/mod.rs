@@ -122,12 +122,19 @@ impl MentalRotation {
                                 let _ = container.class_list().remove_1("animating");
                             }
                             
-                            // Create new game instance first
+                            // Create new game instance and immediately save state
                             let next_game = MentalRotation::new(next_level);
+                            
+                            if let Some(storage) = window.local_storage().ok().flatten() {
+                                let _ = storage.set_item(
+                                    "mental_rotation_state", 
+                                    &serde_json::to_string(&next_game).unwrap()
+                                );
+                            }
                             
                             // Update game instance
                             if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
-                                *lock = Some(next_game);
+                                *lock = Some(next_game.clone());
                             }
                             
                             // Update level display
