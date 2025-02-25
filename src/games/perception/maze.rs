@@ -49,7 +49,9 @@ impl Perception {
                 }
             }
 
-            if !neighbors.is_empty() {
+            if neighbors.is_empty() {
+                stack.pop();
+            } else {
                 // Shuffle neighbors using js_sys::Math::random
                 neighbors.sort_by(|_, _| {
                     if Math::random() < 0.5 {
@@ -66,8 +68,6 @@ impl Perception {
                 walls[nb_base + nb_wall] = false;
                 visited_cells[idx(nr, nc)] = true;
                 stack.push((nr, nc));
-            } else {
-                stack.pop();
             }
         }
 

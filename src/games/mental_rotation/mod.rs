@@ -4,17 +4,14 @@ mod grid;
 mod timer;
 mod rotation;
 
-use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use tile::Direction;
 use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, MouseEvent};
-use std::{collections::HashSet, rc::Rc};
-use web_sys::{Document, HtmlElement, Window};
+use web_sys::{Document, Window};
 use wasm_bindgen::JsCast;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-use std::cell::RefCell;
 
 lazy_static! {
     static ref GAME_INSTANCE: Mutex<Option<MentalRotation>> = Mutex::new(None);
@@ -30,30 +27,28 @@ pub struct MentalRotation {
     end_pos: (usize, usize),
     moves: usize,
     time_remaining: u32,
-    original_positions: Vec<Vec<(usize, usize)>>,  // Store initial tile positions
+    #[serde(skip)]
+    last_click_time: f64,
 }
 
 #[wasm_bindgen]
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
-    pub fn new(level: usize) -> Self {
-        let tiles = level_generator::generate_level(level);
-        let original_positions = tiles.iter().map(|t| t.cells.clone()).collect();
-        
+    #[must_use] pub fn new(level: usize) -> Self {
         let grid_size = level;
         Self {
             level,
-            tiles,
+            tiles: level_generator::generate_level(level),
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),
             moves: 0,
             time_remaining: 180,
-            original_positions,
+            last_click_time: 0.0,
         }
     }
 
-    fn get_arrow_classes(&self, tile: &tile::Tile, tile_idx: usize) -> String {
+    fn get_arrow_classes(&self, tile: &tile::Tile) -> String {
         let rotation_class = match tile.rotation {
             0 => "pointing-right",
             90 => "pointing-down",
@@ -63,13 +58,16 @@ impl MentalRotation {
         };
         
         if tile.reversed {
-            format!("arrow {} flipped", rotation_class)
+            format!("arrow {rotation_class} flipped")
         } else {
-            format!("arrow {}", rotation_class)
+            format!("arrow {rotation_class}")
         }
     }
 
     pub fn handle_click(&mut self, event: MouseEvent, tile_idx: usize) {
+        web_sys::console::log_1(&format!("handle_click called for tile {}, button {}, level {}", 
+            tile_idx, event.button(), self.level).into());
+        
         if event.button() == 0 {
             self.rotate_tile(tile_idx);
         } else if event.button() == 2 {
@@ -99,7 +97,7 @@ impl MentalRotation {
         if let Some(tile) = self.tiles.iter().find(|t| t.cells.contains(&self.start_pos)) {
             let effective_direction = tile.get_effective_direction();
             // Debug print to help diagnose
-            web_sys::console::log_1(&format!("Direction: {:?}", effective_direction).into());
+            web_sys::console::log_1(&format!("Direction: {effective_direction:?}").into());
             
             // For level 1, must point east
             if self.level == 1 {
@@ -146,7 +144,7 @@ impl MentalRotation {
                             
                             // Update level display
                             if let Some(level_display) = document.query_selector(".level").ok().flatten() {
-                                level_display.set_text_content(Some(&format!("Level {}", next_level)));
+                                level_display.set_text_content(Some(&format!("Level {next_level}")));
                             }
                             
                             // Start new level
@@ -215,9 +213,9 @@ impl MentalRotation {
                 for (tile_idx, tile) in self.tiles.iter().enumerate() {
                     if tile.cells.contains(&(x, y)) {
                         cell.set_class_name("cell tile");
-                        cell.set_attribute("data-position", &format!("{}{}", x, y))?;
+                        cell.set_attribute("data-position", &format!("{x}{y}"))?;
                         let arrow = document.create_element("span")?;
-                        arrow.set_class_name(&self.get_arrow_classes(tile, tile_idx));
+                        arrow.set_class_name(&self.get_arrow_classes(tile));
                         arrow.set_text_content(Some("➔"));
                         cell.append_child(&arrow)?;
                         cell.set_attribute("data-tile", &tile_idx.to_string())?;
@@ -253,28 +251,42 @@ impl MentalRotation {
         let document = document.clone();
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
             event.prevent_default();
+            event.stop_propagation();
+
+            // Get target element and ensure it's a tile
             let target = event.target().unwrap();
             let element = target.dyn_ref::<Element>().unwrap();
-            
-            // Find the closest cell element
-            let cell = if element.class_list().contains("cell") {
+            let tile_element = if element.class_list().contains("tile") {
                 element.clone()
-            } else if let Some(cell) = element.closest(".cell").unwrap() {
-                cell
+            } else if let Some(parent) = element.parent_element() {
+                if parent.class_list().contains("tile") {
+                    parent
+                } else {
+                    return;
+                }
             } else {
                 return;
             };
 
-            if let Some(tile_idx) = cell.get_attribute("data-tile") {
+            // Process tile click
+            if let Some(tile_idx) = tile_element.get_attribute("data-tile") {
                 if let Ok(idx) = tile_idx.parse::<usize>() {
                     if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
                         if let Some(mut game) = lock.take() {
+                            // Debounce using last click time
+                            let now = js_sys::Date::now();
+                            if now - game.last_click_time < 100.0 {
+                                *lock = Some(game);
+                                return;
+                            }
+                            game.last_click_time = now;
+
                             game.handle_click(event, idx);
                             if let Some(tile) = game.tiles.get(idx) {
                                 for &(x, y) in &tile.cells {
-                                    let selector = format!(".cell[data-position='{}{}'] .arrow", x, y);
+                                    let selector = format!(".cell[data-position='{x}{y}'] .arrow");
                                     if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
-                                        arrow.set_class_name(&game.get_arrow_classes(tile, idx));
+                                        arrow.set_class_name(&game.get_arrow_classes(tile));
                                     }
                                 }
                             }
@@ -285,13 +297,14 @@ impl MentalRotation {
                 }
             }
         }) as Box<dyn FnMut(MouseEvent)>);
-        
+
+        // Single event listener on grid
         grid.add_event_listener_with_callback(
             "mousedown",
             click_callback.as_ref().unchecked_ref(),
         )?;
         click_callback.forget();
-        
+
         Ok(())
     }
 
@@ -320,7 +333,7 @@ impl MentalRotation {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn grid_size(&self) -> usize {
+    #[must_use] pub fn grid_size(&self) -> usize {
         self.grid_size
     }
 }

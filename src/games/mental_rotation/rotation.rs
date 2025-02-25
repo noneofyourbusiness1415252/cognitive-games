@@ -13,7 +13,7 @@ pub fn rotate_coordinates(cells: &[(usize, usize)], rotation: i32) -> Vec<(usize
     let center_y = min_y;
 
     // Invert angle for clockwise rotation
-    let angle = -(rotation as f64).to_radians();
+    let angle = -f64::from(rotation).to_radians();
     let sin = angle.sin();
     let cos = angle.cos();
 
@@ -24,8 +24,8 @@ pub fn rotate_coordinates(cells: &[(usize, usize)], rotation: i32) -> Vec<(usize
             let dy = y - center_y;
             
             // Rotate clockwise
-            let rx = (dx as f64 * cos - dy as f64 * sin).round() as i32;
-            let ry = (dx as f64 * sin + dy as f64 * cos).round() as i32;
+            let rx = (f64::from(dx) * cos - f64::from(dy) * sin).round() as i32;
+            let ry = (f64::from(dx) * sin + f64::from(dy) * cos).round() as i32;
             
             // Translate back
             let new_x = (rx + center_x) as usize;

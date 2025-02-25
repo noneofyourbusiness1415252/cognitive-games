@@ -1,5 +1,4 @@
 use super::tile::{Tile, Direction};
-use super::grid::GridPos;
 use js_sys::Math;
 
 fn random_rotation() -> i32 {

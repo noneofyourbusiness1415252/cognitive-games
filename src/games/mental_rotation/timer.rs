@@ -33,7 +33,7 @@ pub fn setup_timer(window: &Window, initial_time: u32) -> Result<(), JsValue> {
             time_clone.set(current - 1);
             let mins = current / 60;
             let secs = current % 60;
-            timer_element_clone.set_text_content(Some(&format!("{}:{:02}", mins, secs)));
+            timer_element_clone.set_text_content(Some(&format!("{mins}:{secs:02}")));
         }
     }) as Box<dyn FnMut()>);
 
