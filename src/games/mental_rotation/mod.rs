@@ -211,7 +211,7 @@ impl MentalRotation {
                         cell.set_class_name("cell tile");
                         cell.set_attribute("data-position", &format!("{x}{y}"))?;
                         let arrow = document.create_element("span")?;
-                        arrow.set_class_name(&self.get_arrow_classes(tile));
+                        arrow.set_class_name(&MentalRotation::get_arrow_classes(tile));
                         arrow.set_text_content(Some("➔"));
                         cell.append_child(&arrow)?;
                         cell.set_attribute("data-tile", &tile_idx.to_string())?;
@@ -282,7 +282,7 @@ impl MentalRotation {
                                 for &(x, y) in &tile.cells {
                                     let selector = format!(".cell[data-position='{x}{y}'] .arrow");
                                     if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
-                                        arrow.set_class_name(&game.get_arrow_classes(tile));
+                                        arrow.set_class_name(&MentalRotation::get_arrow_classes(tile));
                                     }
                                 }
                             }

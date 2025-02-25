@@ -142,7 +142,7 @@ impl Numeracy {
                 document: document.clone(),
                 container: container.clone(),
             };
-            this.update_timer().unwrap();
+            this.update_timer();
             this.check_time_limits().unwrap();
         }) as Box<dyn FnMut()>);
 
@@ -170,7 +170,7 @@ impl Numeracy {
             }
         }
         self.render_bubbles()?;
-        self.update_stats()?;
+        self.update_stats();
 
         Ok(())
     }
@@ -179,7 +179,7 @@ impl Numeracy {
     pub fn start(&self) -> Result<(), JsValue> {
         self.state.borrow_mut().start_level();
         self.render_bubbles()?;
-        self.update_stats()?;
+        self.update_stats();
         self.start_timer()?;
         Ok(())
     }

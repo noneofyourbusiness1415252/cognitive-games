@@ -93,7 +93,7 @@ impl Perception {
         let game_state = Rc::new(RefCell::new(self.clone()));
 
         Self::setup_click_handler(game_state.clone())?;
-        Self::setup_timer(game_state.clone())?;
+        Self::setup_timer(&game_state)?;
 
         // Set up reset button handler
         if let Some(reset_btn) = self.document.get_element_by_id("reset-level") {
