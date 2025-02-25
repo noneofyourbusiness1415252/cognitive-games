@@ -106,18 +106,15 @@ impl Numeracy {
         Ok(())
     }
 
-    fn update_stats(&self) -> Result<(), JsValue> {
+    fn update_stats(&self) {
         let state = self.state.borrow();
 
         if let Some(level_elem) = self.document.get_element_by_id("level") {
             level_elem.set_text_content(Some(&state.level.number.to_string()));
         }
-
-        // Removed score element update
-        Ok(())
     }
 
-    fn update_timer(&self) -> Result<(), JsValue> {
+    fn update_timer(&self) {
         let state = self.state.borrow();
 
         if let Some(timer_elem) = self.document.get_element_by_id("timer") {
@@ -131,7 +128,6 @@ impl Numeracy {
                 timer_elem.set_text_content(Some("Paused"));
             }
         }
-        Ok(())
     }
 
     fn start_timer(&self) -> Result<(), JsValue> {

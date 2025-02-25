@@ -61,8 +61,8 @@ impl Perception {
                 .parse::<f64>()
                 .unwrap_or(0.0);
 
-            // If more than 5 minutes (300000 ms) have passed since last save, create a new maze.
-            if now - last_save > 300000.0 {
+            // If more than 5 minutes (300_000 ms) have passed since last save, create a new maze.
+            if now - last_save > 300_000.0 {
                 Self::create_maze(2, document)
             } else {
                 // Deserialize the saved state.

@@ -21,7 +21,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn reversed(&self) -> Self {
+    pub fn reversed(self) -> Self {
         match self {
             Direction::North => Direction::South,
             Direction::South => Direction::North,
@@ -34,7 +34,7 @@ impl Direction {
         }
     }
 
-    pub fn rotate_90(&self) -> Self {
+    pub fn rotate_90(self) -> Self {
         match self {
             Direction::North => Direction::East,
             Direction::East => Direction::South,
@@ -47,7 +47,7 @@ impl Direction {
         }
     }
 
-    pub fn to_angle(&self) -> f64 {
+    pub fn angle(self) -> f64 {
         match self {
             Direction::North => 270.0,
             Direction::South => 90.0,

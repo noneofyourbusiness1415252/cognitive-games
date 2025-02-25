@@ -57,5 +57,23 @@ features = [
 wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"
 wasm-bindgen-futures = "0.3.22"
+
 [build]
 rustflags = ["--cfg=web_sys_unstable_apis"]
+
+[lints.clippy]
+pedantic = "warn"
+# These lints must be allowed due to:
+# - cast_possible_wrap: Required for maze generation algorithm
+# - cast_precision_loss: Required for random number generation
+# - cast_sign_loss: Required for various game algorithms
+# - cast_possible_truncation: Required for various game algorithms 
+# - unsafe_derive_deserialize: Required for game state serialization
+# - missing_errors_doc, missing_panics_doc: Acceptable for game codebase
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow" 
+cast_possible_truncation = "allow"
+unsafe_derive_deserialize = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

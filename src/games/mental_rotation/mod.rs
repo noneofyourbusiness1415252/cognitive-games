@@ -48,11 +48,10 @@ impl MentalRotation {
         }
     }
 
-    fn get_arrow_classes(&self, tile: &tile::Tile) -> String {
+    fn get_arrow_classes(tile: &tile::Tile) -> String {
         let rotation_class = match tile.rotation {
-            0 => "pointing-right",
             90 => "pointing-down",
-            180 => "pointing-left",
+            180 => "pointing-left", 
             270 => "pointing-up",
             _ => "pointing-right",
         };
@@ -64,7 +63,7 @@ impl MentalRotation {
         }
     }
 
-    pub fn handle_click(&mut self, event: MouseEvent, tile_idx: usize) {
+    pub fn handle_click(&mut self, event: &MouseEvent, tile_idx: usize) {
         web_sys::console::log_1(&format!("handle_click called for tile {}, button {}, level {}", 
             tile_idx, event.button(), self.level).into());
         
@@ -101,10 +100,7 @@ impl MentalRotation {
             
             // For level 1, must point east
             if self.level == 1 {
-                match effective_direction {
-                    Direction::East => true,
-                    _ => false
-                }
+                matches!(effective_direction, Direction::East)
             } else {
                 false
             }
@@ -281,7 +277,7 @@ impl MentalRotation {
                             }
                             game.last_click_time = now;
 
-                            game.handle_click(event, idx);
+                            game.handle_click(&event, idx);
                             if let Some(tile) = game.tiles.get(idx) {
                                 for &(x, y) in &tile.cells {
                                     let selector = format!(".cell[data-position='{x}{y}'] .arrow");
@@ -310,18 +306,6 @@ impl MentalRotation {
 
     fn setup_timer(&self, window: &Window) -> Result<(), JsValue> {
         timer::setup_timer(window, self.time_remaining)
-    }
-
-    fn load_state(&self) {
-        if let Some(window) = web_sys::window() {
-            if let Some(storage) = window.local_storage().ok().flatten() {
-                if let Ok(Some(state)) = storage.get_item("mental_rotation_state") {
-                    if let Ok(game) = serde_json::from_str(&state) {
-                        *GAME_INSTANCE.lock().unwrap() = Some(game);
-                    }
-                }
-            }
-        }
     }
 
     fn save_state(&self) {

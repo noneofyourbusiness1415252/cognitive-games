@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::console;
 
 impl Perception {
-    pub(super) fn setup_timer(game_state: Rc<RefCell<Perception>>) -> Result<(), JsValue> {
+    pub(super) fn setup_timer(game_state: &Rc<RefCell<Perception>>) -> Result<(), JsValue> {
         let timer_callback = {
             let game_state = game_state.clone();
             Closure::wrap(Box::new(move || {
