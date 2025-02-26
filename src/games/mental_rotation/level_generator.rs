@@ -25,43 +25,73 @@ pub fn generate_level(level: usize) -> Vec<Tile> {
         return tiles;
     }
 
-    // For level 2+, create non-overlapping tiles
+    // For level 2+, create a path from start to end
     let mut occupied = vec![vec![false; size]; size];
 
-    // Start tile - always start in wrong orientation
-    let start_tile = Tile {
-        cells: vec![(0, mid)],
-        arrows: vec![Direction::East],
-        rotation: 270,  // Start pointing down
-        reversed: true, // Start reversed
-    };
-    occupied[0][mid] = true;
-    tiles.push(start_tile);
+    // Create a path from start to end
+    let mut path = Vec::new();
+    let mut current = (0, mid);
+    path.push(current);
+    occupied[current.1][current.0] = true;
 
-    // Middle tiles - place in zigzag pattern for maximum rotations
-    for x in 1..size-1 {
-        let y = if x % 2 == 0 { mid } else { mid.saturating_sub(1) };
-        if !occupied[x][y] {
-            let tile = Tile {
-                cells: vec![(x, y)],
-                arrows: vec![Direction::East],
-                rotation: if x % 2 == 0 { 90 } else { 270 },
-                reversed: x % 2 == 1,
-            };
-            occupied[x][y] = true;
-            tiles.push(tile);
-        }
+    // Generate direct path between start and end
+    while current.0 < size - 1 {
+        current = (current.0 + 1, current.1);
+        path.push(current);
+        occupied[current.1][current.0] = true;
     }
 
-    // End tile
-    let end_tile = Tile {
-        cells: vec![(size-1, mid)],
-        arrows: vec![Direction::East],
-        rotation: 90,  // Point down initially
-        reversed: true,
-    };
-    occupied[size-1][mid] = true;
-    tiles.push(end_tile);
+    // Create tiles along the path
+    for &(x, y) in &path {
+        let mut arrows = vec![Direction::East]; // Default direction
+        
+        // Determine arrow direction based on position in path
+        if x < size - 1 {
+            // If not the last position, point to the next position
+            arrows = vec![Direction::East];
+        } else {
+            // Last position, can point anywhere
+            arrows = vec![Direction::East];
+        }
+        
+        // Create tile with randomized rotation/reversal for difficulty
+        tiles.push(Tile {
+            cells: vec![(x, y)],
+            arrows,
+            rotation: random_rotation(),
+            reversed: random_bool(),
+        });
+    }
+
+    // Add additional tiles for difficulty (if level > 2)
+    if size > 2 {
+        for _ in 0..(size-2) {
+            // Find an unoccupied position for a distraction tile
+            let mut x = 0;
+            let mut y = 0;
+            let mut found = false;
+            
+            for attempts in 0..10 {
+                x = (Math::floor(Math::random() * size as f64) as usize).min(size - 1);
+                y = (Math::floor(Math::random() * size as f64) as usize).min(size - 1);
+                
+                if !occupied[y][x] {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if found {
+                occupied[y][x] = true;
+                tiles.push(Tile {
+                    cells: vec![(x, y)],
+                    arrows: vec![Direction::East],
+                    rotation: random_rotation(),
+                    reversed: random_bool(),
+                });
+            }
+        }
+    }
 
     tiles
 }
