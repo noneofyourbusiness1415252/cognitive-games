@@ -22,6 +22,7 @@ lazy_static! {
 pub struct MentalRotation {
     level: usize,
     tiles: Vec<tile::Tile>,
+    initial_tiles: Vec<tile::Tile>, // Store initial tile configuration
     grid_size: usize,
     start_pos: (usize, usize),
     end_pos: (usize, usize),
@@ -44,9 +45,13 @@ impl MentalRotation {
         
         // Otherwise create a new game
         let grid_size = level;
+        let tiles = level_generator::generate_level(level);
+        let initial_tiles = tiles.clone(); // Store initial configuration
+        
         Self {
             level,
-            tiles: level_generator::generate_level(level),
+            tiles,
+            initial_tiles,
             grid_size,
             start_pos: (0, grid_size/2),
             end_pos: (grid_size-1, grid_size/2),
@@ -368,30 +373,26 @@ impl MentalRotation {
 
     fn setup_reset_button(&self, document: &Document) -> Result<(), JsValue> {
         if let Some(reset_button) = document.get_element_by_id("reset") {
-            let level = self.level;
+            // Clone document for use in callback
+            let document = document.clone();
             
             let reset_callback = Closure::wrap(Box::new(move |_: Event| {
-                if let Some(window) = web_sys::window() {
-                    // Create a new game at the current level
-                    let new_game = MentalRotation::new(level);
-                    
-                    // Update game instance
-                    if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
-                        *lock = Some(new_game.clone());
-                    }
-                    
-                    // Reset the timer
-                    if let Some(document) = window.document() {
-                        if let Some(timer_element) = document.query_selector(".timer").ok().flatten() {
-                            timer_element.set_text_content(Some("3:00"));
+                if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                    if let Some(mut game) = lock.take() {
+                        // Reset tiles to initial configuration without affecting moves or timer
+                        game.tiles = game.initial_tiles.clone();
+                        
+                        // Update game instance first
+                        *lock = Some(game.clone());
+                        
+                        // Only redraw the grid, not the timer
+                        if let Some(document) = web_sys::window().and_then(|w| w.document()) {
+                            let _ = game.setup_grid(&document);
                         }
                         
-                        // Clear the existing timer
-                        let _ = window.clear_interval_with_handle(timer::get_timer_handle());
+                        // Save state with reset tiles
+                        game.save_state();
                     }
-                    
-                    // Start the game
-                    let _ = new_game.start();
                 }
             }) as Box<dyn FnMut(Event)>);
             
