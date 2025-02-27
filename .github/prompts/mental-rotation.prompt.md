@@ -19,7 +19,7 @@ A button is used to reset the tiles to their state at the start of the level.
 
  Use a 3-minute timer. The timer must be centred directly above the grid. The game state should be preserved after you close the tab. If the time has elapsed, a new game with the same level starts.
 
-The tiles take up cells on a square grid with side length n, where n is the level starting at 1. To generate the level, create a single valid path from A to B, then create tiles which can be interacted with to create this path. Make the level as difficult as possible in O(n). Levels must go to infinity.
+The tiles take up cells on a square grid with side length n, where n is the level starting at 1. To generate the level, create a single valid path from A to B, then store this as the solution for checking. Create tiles which can be interacted with to create this path.  The algorithm must maximise (as much as possible in O(n) complexity) the difference between worst case and best case move count, assuming that no two post-move grid states are equal. Levels must go to infinity.
 
 A is labelled using a rocket on the left on the start cell, and B with an Earth symbol on the right of the end cell (both outside the grid). When the path is completed, the rocket immediately but slowly travels smoothly through the path towards the Earth symbol, completing the level.
 

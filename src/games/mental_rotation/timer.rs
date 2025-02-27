@@ -1,51 +1,91 @@
 use wasm_bindgen::prelude::*;
-use web_sys::Window;
-use std::rc::Rc;
-use std::cell::Cell;
-use lazy_static::lazy_static;
-use std::sync::Mutex;
+use wasm_bindgen::JsCast;
+use web_sys::{Document, Window};
+use crate::games::mental_rotation::GAME_INSTANCE;
 
-lazy_static! {
-    static ref CURRENT_TIMER: Mutex<Option<i32>> = Mutex::new(None);
-}
+// Store interval handle to allow clearing it later
+static mut TIMER_HANDLE: Option<i32> = None;
 
-pub fn setup_timer(window: &Window, initial_time: u32) -> Result<(), JsValue> {
+pub fn setup_timer(window: &Window, initial_seconds: u32) -> Result<(), JsValue> {
     // Clear any existing timer
-    if let Some(id) = CURRENT_TIMER.lock().unwrap().take() {
-        window.clear_interval_with_handle(id);
+    if let Some(handle) = unsafe { TIMER_HANDLE } {
+        window.clear_interval_with_handle(handle);
     }
     
-    let timer_element = window.document()
-        .unwrap()
-        .query_selector(".timer")
-        .unwrap()
-        .unwrap();
-
-    let time = Rc::new(Cell::new(initial_time));
-    let timer_element = Rc::new(timer_element);
+    let document = window.document().unwrap();
+    let timer_element = document.query_selector(".timer")?.unwrap();
     
-    let timer_element_clone = timer_element.clone();
-    let time_clone = time.clone();
+    // Format and set the initial time
+    let mins = initial_seconds / 60;
+    let secs = initial_seconds % 60;
+    timer_element.set_text_content(Some(&format!("{:01}:{:02}", mins, secs)));
     
-    let callback = Closure::wrap(Box::new(move || {
-        let current = time_clone.get();
-        if current > 0 {
-            time_clone.set(current - 1);
-            let mins = current / 60;
-            let secs = current % 60;
-            timer_element_clone.set_text_content(Some(&format!("{mins}:{secs:02}")));
+    // Create closure for the timer update
+    let timer_callback = Closure::wrap(Box::new(move || {
+        if let Some(document) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(timer_element) = document.query_selector(".timer").ok().flatten() {
+                if let Ok(mut game_lock) = GAME_INSTANCE.try_lock() {
+                    if let Some(mut game) = game_lock.take() {
+                        // Decrease time by 1 second if greater than 0
+                        if game.time_remaining > 0 {
+                            game.time_remaining -= 1;
+                            
+                            // Update timer display
+                            let mins = game.time_remaining / 60;
+                            let secs = game.time_remaining % 60;
+                            timer_element.set_text_content(Some(&format!("{:01}:{:02}", mins, secs)));
+                            
+                            // Save state after updating the time
+                            game.save_state();
+                            
+                            *game_lock = Some(game);
+                        } else {
+                            // Time's up - restart the current level
+                            // Clear the existing timer
+                            if let Some(window) = web_sys::window() {
+                                if let Some(handle) = unsafe { TIMER_HANDLE } {
+                                    window.clear_interval_with_handle(handle);
+                                }
+                                
+                                let level = game.level;
+                                *game_lock = Some(game);
+                                
+                                // Create new game with same level
+                                let new_game = crate::games::mental_rotation::MentalRotation::new(level);
+                                
+                                // Start the new game
+                                let _ = new_game.start();
+                            }
+                        }
+                    }
+                }
+            }
         }
     }) as Box<dyn FnMut()>);
-
+    
+    // Set 1-second interval
     let handle = window.set_interval_with_callback_and_timeout_and_arguments_0(
-        callback.as_ref().unchecked_ref(),
-        1000,
+        timer_callback.as_ref().unchecked_ref(), 
+        1000
     )?;
     
-    // Store new timer ID
-    *CURRENT_TIMER.lock().unwrap() = Some(handle);
+    // Store the interval handle for later use
+    set_timer_handle(handle);
     
-    callback.forget();
+    // Keep the closure alive
+    timer_callback.forget();
     
     Ok(())
+}
+
+pub fn set_timer_handle(handle: i32) {
+    unsafe {
+        TIMER_HANDLE = Some(handle);
+    }
+}
+
+pub fn get_timer_handle() -> i32 {
+    unsafe {
+        TIMER_HANDLE.unwrap_or(0)
+    }
 }

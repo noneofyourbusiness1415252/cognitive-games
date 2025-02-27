@@ -26,8 +26,8 @@ pub fn main_js() -> Result<(), JsValue> {
             game.start()?;
         }
         "/mental-rotation" => {
-            let game = MentalRotation::new(1);
-            game.start()?;
+            // Let the mental rotation module handle loading saved state
+            games::mental_rotation::initialize()?;
         }
         _ => {
             Perception::new()?;

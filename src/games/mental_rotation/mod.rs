@@ -35,6 +35,14 @@ pub struct MentalRotation {
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
     #[must_use] pub fn new(level: usize) -> Self {
+        // Try to load saved state first if level is 1 (initial loading)
+        if level == 1 {
+            if let Some(saved) = load_saved_game_state() {
+                return saved;
+            }
+        }
+        
+        // Otherwise create a new game
         let grid_size = level;
         Self {
             level,
@@ -64,9 +72,6 @@ impl MentalRotation {
     }
 
     pub fn handle_click(&mut self, event: &MouseEvent, tile_idx: usize) {
-        web_sys::console::log_1(&format!("handle_click called for tile {}, button {}, level {}", 
-            tile_idx, event.button(), self.level).into());
-        
         if event.button() == 0 {
             self.rotate_tile(tile_idx);
         } else if event.button() == 2 {
@@ -211,12 +216,20 @@ impl MentalRotation {
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
         
+        // Update level display
+        if let Some(level_display) = document.query_selector(".level").ok().flatten() {
+            level_display.set_text_content(Some(&format!("Level {}", self.level)));
+        }
+        
         self.setup_grid(&document)?;
         self.setup_timer(&window)?;
+        self.setup_reset_button(&document)?;
         
         // Update game instance last
         if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
             *lock = Some(self.clone());
+            // Save state when starting a level
+            self.save_state();
         }
         
         Ok(())
@@ -353,10 +366,51 @@ impl MentalRotation {
         timer::setup_timer(window, self.time_remaining)
     }
 
+    fn setup_reset_button(&self, document: &Document) -> Result<(), JsValue> {
+        if let Some(reset_button) = document.get_element_by_id("reset") {
+            let level = self.level;
+            
+            let reset_callback = Closure::wrap(Box::new(move |_: Event| {
+                if let Some(window) = web_sys::window() {
+                    // Create a new game at the current level
+                    let new_game = MentalRotation::new(level);
+                    
+                    // Update game instance
+                    if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+                        *lock = Some(new_game.clone());
+                    }
+                    
+                    // Reset the timer
+                    if let Some(document) = window.document() {
+                        if let Some(timer_element) = document.query_selector(".timer").ok().flatten() {
+                            timer_element.set_text_content(Some("3:00"));
+                        }
+                        
+                        // Clear the existing timer
+                        let _ = window.clear_interval_with_handle(timer::get_timer_handle());
+                    }
+                    
+                    // Start the game
+                    let _ = new_game.start();
+                }
+            }) as Box<dyn FnMut(Event)>);
+            
+            reset_button.add_event_listener_with_callback(
+                "click",
+                reset_callback.as_ref().unchecked_ref(),
+            )?;
+            reset_callback.forget();
+        }
+        
+        Ok(())
+    }
+
     fn save_state(&self) {
         if let Some(window) = web_sys::window() {
             if let Some(storage) = window.local_storage().ok().flatten() {
-                let _ = storage.set_item("mental_rotation_state", &serde_json::to_string(self).unwrap());
+                if let Ok(json_state) = serde_json::to_string(self) {
+                    let _ = storage.set_item("mental_rotation_state", &json_state);
+                }
             }
         }
     }
@@ -365,4 +419,22 @@ impl MentalRotation {
     #[must_use] pub fn grid_size(&self) -> usize {
         self.grid_size
     }
+}
+
+fn load_saved_game_state() -> Option<MentalRotation> {
+    if let Some(window) = web_sys::window() {
+        if let Some(storage) = window.local_storage().ok().flatten() {
+            if let Ok(Some(saved_state)) = storage.get_item("mental_rotation_state") {
+                match serde_json::from_str::<MentalRotation>(&saved_state) {
+                    Ok(game) => {
+                        return Some(game);
+                    },
+                    Err(_) => {
+                        // Silently fail and return None
+                    }
+                }
+            }
+        }
+    }
+    None
 }
