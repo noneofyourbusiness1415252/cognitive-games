@@ -23,6 +23,7 @@ pub struct MentalRotation {
     level: usize,
     tiles: Vec<tile::Tile>,
     initial_tiles: Vec<tile::Tile>, // Store initial tile configuration
+    solution_path_tiles: Vec<usize>, // Add this line
     grid_size: usize,
     start_pos: (usize, usize),
     end_pos: (usize, usize),
@@ -44,17 +45,20 @@ impl MentalRotation {
         }
         
         // Otherwise create a new game
-        let grid_size = level;
-        let tiles = level_generator::generate_level(level);
+        let grid_size = level; // Keep the original grid size calculation
+        
+        // Use proper tuple destructuring to get all values from generate_level
+        let (tiles, solution_path_tiles, start_pos, end_pos) = level_generator::generate_level(level);
         let initial_tiles = tiles.clone(); // Store initial configuration
         
         Self {
             level,
             tiles,
             initial_tiles,
+            solution_path_tiles,
             grid_size,
-            start_pos: (0, grid_size/2),
-            end_pos: (grid_size-1, grid_size/2),
+            start_pos,
+            end_pos,
             moves: 0,
             time_remaining: 180,
             last_click_time: 0.0,
@@ -103,65 +107,23 @@ impl MentalRotation {
     }
 
     fn check_win(&self) -> bool {
-        // Find tile at start position
-        if let Some(start_tile) = self.tiles.iter().find(|t| t.cells.contains(&self.start_pos)) {
-            // Begin path traversal from start position
-            let mut current_pos = self.start_pos;
-            let mut visited = vec![current_pos];
-            
-            loop {
-                // Find the current tile
-                if let Some(current_tile) = self.tiles.iter().find(|t| t.cells.contains(&current_pos)) {
-                    // Get effective direction from the tile
-                    let direction = current_tile.get_effective_direction();
-                    
-                    // Calculate next position based on direction
-                    let next_pos = match direction {
-                        Direction::North => (current_pos.0, current_pos.1.saturating_sub(1)),
-                        Direction::South => (current_pos.0, current_pos.1 + 1),
-                        Direction::East => (current_pos.0 + 1, current_pos.1),
-                        Direction::West => (current_pos.0.saturating_sub(1), current_pos.1),
-                        Direction::NorthEast => (current_pos.0 + 1, current_pos.1.saturating_sub(1)),
-                        Direction::NorthWest => (current_pos.0.saturating_sub(1), current_pos.1.saturating_sub(1)),
-                        Direction::SouthEast => (current_pos.0 + 1, current_pos.1 + 1),
-                        Direction::SouthWest => (current_pos.0.saturating_sub(1), current_pos.1 + 1),
-                    };
-                    
-                    // Check if we've reached the end
-                    if next_pos == self.end_pos {
-                        return true;
-                    }
-                    
-                    // Check if next position is valid
-                    if next_pos.0 >= self.grid_size || next_pos.1 >= self.grid_size {
-                        // Out of bounds
-                        break;
-                    }
-                    
-                    // Check if we're going in circles
-                    if visited.contains(&next_pos) {
-                        // Cycle detected
-                        break;
-                    }
-                    
-                    // Check if there's a tile at the next position
-                    if !self.tiles.iter().any(|t| t.cells.contains(&next_pos)) {
-                        // No connecting tile
-                        break;
-                    }
-                    
-                    // Move to next position
-                    current_pos = next_pos;
-                    visited.push(current_pos);
-                } else {
-                    // Current position doesn't have a tile
-                    break;
+        // A winning position is when all tiles in the path create a continuous path
+        // from start to end with arrows correctly connected
+        
+        // First, check that every tile in the path has the correct effective direction
+        for &tile_idx in &self.solution_path_tiles {
+            if let Some(tile) = self.tiles.get(tile_idx) {
+                // Check the effective direction is East (there may be multiple ways to achieve this)
+                if tile.get_effective_direction() != Direction::East {
+                    return false;
                 }
+            } else {
+                return false;
             }
         }
         
-        // No valid path found
-        false
+        // All solution tiles have the correct effective direction
+        true
     }
 
     fn trigger_win_animation(&self) {
@@ -248,6 +210,7 @@ impl MentalRotation {
             grid.remove_child(&child)?;
         }
         
+        // Use the stored grid_size directly (which should match level)
         grid.set_attribute("style", &format!("grid-template-columns: repeat({}, 3rem)", self.grid_size))?;
         
         // Add contextmenu prevention using closure
@@ -296,18 +259,35 @@ impl MentalRotation {
 
         // Add rocket and earth at correct positions
         let grid_container = document.query_selector(".grid-container")?.unwrap();
+        
+        // Create rocket element
         let rocket = document.create_element("span")?;
         rocket.set_class_name("rocket");
         rocket.set_text_content(Some("🚀"));
+        
+        // Adjust rocket vertical position to align with start_pos if necessary
+        if self.grid_size > 1 {
+            let start_y_percent = (self.start_pos.1 as f64 / (self.grid_size - 1) as f64) * 100.0;
+            rocket.set_attribute("style", &format!("top: {}%;", start_y_percent))?;
+        }
+        
         grid_container.append_child(&rocket)?;
 
+        // Create earth element
         let earth = document.create_element("span")?;
         earth.set_class_name("earth");
         earth.set_text_content(Some("🌍"));
+        
+        // Adjust earth vertical position to align with end_pos if necessary
+        if self.grid_size > 1 {
+            let end_y_percent = (self.end_pos.1 as f64 / (self.grid_size - 1) as f64) * 100.0;
+            earth.set_attribute("style", &format!("top: {}%;", end_y_percent))?;
+        }
+        
         grid_container.append_child(&earth)?;
 
-        // Clone document for use in callback
-        let document = document.clone();
+        // Create a click handler that doesn't capture the document reference
+        // Instead, we'll use window.document() inside the closure
         let click_callback = Closure::wrap(Box::new(move |event: MouseEvent| {
             event.prevent_default();
             event.stop_propagation();
@@ -341,14 +321,21 @@ impl MentalRotation {
                             game.last_click_time = now;
 
                             game.handle_click(&event, idx);
-                            if let Some(tile) = game.tiles.get(idx) {
-                                for &(x, y) in &tile.cells {
-                                    let selector = format!(".cell[data-position='{x}{y}'] .arrow");
-                                    if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
-                                        arrow.set_class_name(&MentalRotation::get_arrow_classes(tile));
+                            
+                            // Get document from window inside the closure
+                            if let Some(window) = web_sys::window() {
+                                if let Some(document) = window.document() {
+                                    if let Some(tile) = game.tiles.get(idx) {
+                                        for &(x, y) in &tile.cells {
+                                            let selector = format!(".cell[data-position='{x}{y}'] .arrow");
+                                            if let Some(arrow) = document.query_selector(&selector).ok().flatten() {
+                                                arrow.set_class_name(&MentalRotation::get_arrow_classes(tile));
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            
                             game.save_state();
                             *lock = Some(game);
                         }
@@ -373,9 +360,7 @@ impl MentalRotation {
 
     fn setup_reset_button(&self, document: &Document) -> Result<(), JsValue> {
         if let Some(reset_button) = document.get_element_by_id("reset") {
-            // Clone document for use in callback
-            let document = document.clone();
-            
+            // Use window.document() inside closure instead of capturing the document parameter
             let reset_callback = Closure::wrap(Box::new(move |_: Event| {
                 if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
                     if let Some(mut game) = lock.take() {

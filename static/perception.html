@@ -11,18 +11,14 @@
             --cell-size: min(5vw, 3.75rem);
             --pointer-color: #000000;
             --grid-fg: #0a0310;
-            /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on var(--bg-2) */
-            --visited-fg: #491672;
-            /* Darkest shade of red that yields ≥ 3:1 contrast on --bg-color (#666666) */
+            --visited-fg: var(--highlight-fg); /* Use the shared highlight color */
             --magma-color: #400000;
         }
         @media (prefers-color-scheme: dark) {
             :root {
                 --pointer-color: #959595;
                 --grid-fg: #8200E6;
-                /* Darkest shade of #a532ff that yields ≥ 3:1 contrast on var(--bg-2) */
-                --visited-fg: #be3aff;
-                /* Darkest shade of red that yields ≥ 3:1 contrast on --bg-color (#000000) */
+                --visited-fg: var(--highlight-fg); /* Use the shared highlight color */
                 --magma-color: #B60000;
             }
         }

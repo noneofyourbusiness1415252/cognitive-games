@@ -1,14 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Tile {
-    pub cells: Vec<(usize, usize)>,
-    pub arrows: Vec<Direction>,
-    pub rotation: i32,  // Degrees
-    pub reversed: bool,
-}
-
-#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     North,
     South,
@@ -59,6 +51,41 @@ impl Direction {
             Direction::SouthWest => 135.0,
         }
     }
+
+    pub fn from_rotation(base_direction: Direction, rotation: i32, reversed: bool) -> Self {
+        let directions = [
+            Direction::East,
+            Direction::South,
+            Direction::West,
+            Direction::North,
+        ];
+        
+        let base_index = match base_direction {
+            Direction::East => 0,
+            Direction::South => 1,
+            Direction::West => 2,
+            Direction::North => 3,
+            _ => 0, // For diagonal directions, default to East
+        };
+        
+        // Calculate rotation index
+        let rotation_steps = (rotation / 90) as usize % 4;
+        let mut new_index = (base_index + rotation_steps) % 4;
+        
+        // Handle reversal (opposite direction)
+        if reversed {
+            new_index = (new_index + 2) % 4;
+        }
+        
+        directions[new_index]
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Tile {
+    pub cells: Vec<(usize, usize)>,
+    pub rotation: i32,  // Degrees
+    pub reversed: bool,
 }
 
 impl Tile {
@@ -73,20 +100,26 @@ impl Tile {
     }
 
     pub fn get_effective_direction(&self) -> Direction {
-        // Convert rotation to number of 90-degree turns
-        let turns = ((self.rotation % 360) / 90) as usize;
+        // Calculate the effective direction based on rotation and reversal
+        // There are multiple combinations that can result in the same effective direction
         
-        // Apply rotations
-        let mut dir = self.arrows[0];
-        for _ in 0..turns {
-            dir = dir.rotate_90();
-        }
+        // Start with East as the base direction
+        let base_direction = Direction::East;
+        
+        // Apply rotation
+        let rotated = match self.rotation {
+            0 => base_direction,
+            90 => base_direction.rotate_90(),
+            180 => base_direction.rotate_90().rotate_90(),
+            270 => base_direction.rotate_90().rotate_90().rotate_90(),
+            _ => base_direction, // Default to East for invalid rotations
+        };
         
         // Apply reversal if needed
         if self.reversed {
-            dir.reversed()
+            rotated.reversed()
         } else {
-            dir
+            rotated
         }
     }
 }

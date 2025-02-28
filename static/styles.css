@@ -4,6 +4,7 @@
     --bg-2: #999999;
     --text-color: #000000;
     --border-color: #000000;
+    --highlight-fg: #491672; /* Added for rocket/earth symbols */
     
     /* Cursor variables */
     --cursor-stroke: #000000;
@@ -18,6 +19,7 @@
         --bg-2: #333333;
         --text-color: #8c8c8c;
         --border-color: #8c8c8c;
+        --highlight-fg: #be3aff; /* Added for rocket/earth symbols */
         --cursor-stroke: #8c8c8c;
     }
 }
