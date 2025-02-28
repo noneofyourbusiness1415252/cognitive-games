@@ -1,3 +1,5 @@
+use super::tile::Tile;
+
 pub fn rotate_coordinates(cells: &[(usize, usize)], rotation: i32) -> Vec<(usize, usize)> {
     // Convert coordinates to signed ints for safe arithmetic
     let cells_i32: Vec<(i32, i32)> = cells.iter()
@@ -34,4 +36,13 @@ pub fn rotate_coordinates(cells: &[(usize, usize)], rotation: i32) -> Vec<(usize
             (new_x, new_y)
         })
         .collect()
+}
+
+// Helper function specifically for rotating tile coordinates
+pub fn rotate_coordinates_for_tile(tile: &Tile) -> Option<Vec<(usize, usize)>> {
+    if tile.cells.is_empty() {
+        return None;
+    }
+    
+    Some(rotate_coordinates(&tile.cells, 90))
 }
