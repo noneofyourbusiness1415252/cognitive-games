@@ -95,50 +95,48 @@ impl MentalRotation {
     }
     
     fn rotate_tile(&mut self, tile_idx: usize) {
-        if let Some(tile) = self.tiles.get(tile_idx) {
-            // Check if rotation would cause a collision or go out of bounds
-            if self.is_valid_rotation(tile_idx) {
-                // Safe to rotate
-                if let Some(tile) = self.tiles.get_mut(tile_idx) {
-                    tile.rotate();
-                }
+        // Check if rotation would cause a collision or go out of bounds
+        if self.is_valid_rotation(tile_idx) {
+            // Safe to rotate
+            if let Some(tile) = self.tiles.get_mut(tile_idx) {
+                tile.rotate();
             }
-            // If not valid, silently do nothing
         }
+        // If not valid, silently do nothing
     }
 
     // Helper function to check if a tile rotation would be valid
     fn is_valid_rotation(&self, tile_idx: usize) -> bool {
-        if let Some(tile) = self.tiles.get(tile_idx).cloned() {
-            // Create a copy of the tile with the new rotation
+        if let Some(tile) = self.tiles.get(tile_idx) {
+            // Create a copy of the tile with the proposed rotation
             let mut rotated_tile = tile.clone();
-            rotated_tile.rotation = (rotated_tile.rotation + 90) % 360;
+            rotated_tile.rotate();
             
-            // Get rotated coordinates
-            if let Some(rotated_coords) = rotation::rotate_coordinates_for_tile(&tile) {
-                // Check for grid boundaries
-                for &(x, y) in &rotated_coords {
-                    if x >= self.grid_size || y >= self.grid_size {
-                        return false; // Out of bounds
-                    }
+            // Get the proposed rotated coordinates
+            let rotated_coords = rotation::rotate_coordinates(&tile.cells, 90);
+            
+            // Check for grid boundaries
+            for &(x, y) in &rotated_coords {
+                if x >= self.grid_size || y >= self.grid_size {
+                    return false; // Out of bounds
                 }
-                
-                // Check for collision with other tiles
-                for (other_idx, other_tile) in self.tiles.iter().enumerate() {
-                    if other_idx != tile_idx { // Don't check against itself
-                        for &coord in &rotated_coords {
-                            if other_tile.cells.contains(&coord) {
-                                return false; // Collision with another tile
-                            }
+            }
+            
+            // Check for collision with other tiles
+            for (other_idx, other_tile) in self.tiles.iter().enumerate() {
+                if other_idx != tile_idx { // Don't check against itself
+                    for &coord in &rotated_coords {
+                        if other_tile.cells.contains(&coord) {
+                            return false; // Collision with another tile
                         }
                     }
                 }
-                
-                return true; // No collisions or bounds issues
             }
+            
+            return true; // No collisions or bounds issues
         }
         
-        false // Default to false if we can't analyze the rotation
+        false // Default to false if tile doesn't exist
     }
 
     fn reverse_tile(&mut self, tile_idx: usize) {

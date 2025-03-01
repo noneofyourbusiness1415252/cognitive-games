@@ -23,8 +23,9 @@
             background: var(--bg-color);
         }
         .cell {
-            width: 2.25rem;
-            height: 2.25rem;
+            --size: calc(1em * sqrt(2));
+            width: var(--size);
+            height: var(--size);
             display: flex;
             align-items: center;
             justify-content: center;

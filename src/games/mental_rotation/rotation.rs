@@ -44,5 +44,6 @@ pub fn rotate_coordinates_for_tile(tile: &Tile) -> Option<Vec<(usize, usize)>> {
         return None;
     }
     
+    // Simulate the next rotation (90° clockwise)
     Some(rotate_coordinates(&tile.cells, 90))
 }
