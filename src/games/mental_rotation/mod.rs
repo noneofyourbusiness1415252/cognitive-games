@@ -218,6 +218,13 @@ impl MentalRotation {
     }
 
     pub fn start(&self) -> Result<(), JsValue> {
+        // First check if another instance is already running and clean it up
+        if let Ok(mut lock) = GAME_INSTANCE.try_lock() {
+            if let Some(old_game) = lock.take() {
+                old_game.clear_game_state();
+            }
+        }
+        
         // Setup grid and timer first
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
@@ -436,6 +443,21 @@ impl MentalRotation {
                 if let Ok(json_state) = serde_json::to_string(self) {
                     let _ = storage.set_item("mental_rotation_state", &json_state);
                 }
+            }
+        }
+    }
+
+    pub fn clear_game_state(&self) {
+        // Clear any saved state to prevent loading it immediately again
+        if let Some(window) = web_sys::window() {
+            if let Some(storage) = window.local_storage().ok().flatten() {
+                let _ = storage.remove_item("mental_rotation_state");
+            }
+            
+            // Clear any existing timer to prevent multiple timers running simultaneously
+            if let Some(handle) = unsafe { timer::TIMER_HANDLE } {
+                window.clear_interval_with_handle(handle);
+                unsafe { timer::TIMER_HANDLE = None; }
             }
         }
     }
