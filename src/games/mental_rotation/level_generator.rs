@@ -56,7 +56,7 @@ fn generate_path(start: (usize, usize), end: (usize, usize), grid_size: usize) -
     
     let mut current = start;
     
-    // Create a direct path from left to right with some variety in Y position
+    // Create a path that first moves horizontally to the last column
     while current.0 < end.0 {
         // Always move east (right)
         let next_x = current.0 + 1;
@@ -79,9 +79,22 @@ fn generate_path(start: (usize, usize), end: (usize, usize), grid_size: usize) -
         // Make sure we stay within grid bounds
         next_y = next_y.min(grid_size - 1);
         
+        // If this is the final horizontal move, ensure Y matches the end position
+        if next_x == end.0 {
+            next_y = end.1;
+        }
+        
         let next = (next_x, next_y);
         path.push(next);
         current = next;
+    }
+    
+    // Make sure the last point matches the end position exactly
+    if let Some(&last) = path.last() {
+        if last != end {
+            path.pop();
+            path.push(end);
+        }
     }
     
     path
