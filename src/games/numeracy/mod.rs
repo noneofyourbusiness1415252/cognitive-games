@@ -32,7 +32,7 @@ impl Numeracy {
         let game = Numeracy {
             state: Rc::new(RefCell::new(GameState::new())),
             document: document.clone(),
-            container,
+            container: container.clone(),
         };
 
         // Set up visibility change handler
@@ -52,7 +52,48 @@ impl Numeracy {
         document.set_onvisibilitychange(Some(visibility_callback.as_ref().unchecked_ref()));
         visibility_callback.forget();
 
+        // Set up bubble click handlers once
+        game.setup_bubble_handlers()?;
+
         Ok(game)
+    }
+
+    fn setup_bubble_handlers(&self) -> Result<(), JsValue> {
+        let children = self.container.children();
+
+        for i in 0..children.length() {
+            if let Some(bubble) = children.item(i) {
+                let bubble: Element = bubble.dyn_into::<Element>()?;
+                let state = self.state.clone();
+                let bubble_ref = bubble.clone();
+                let i = i as usize;
+                let handler = Closure::wrap(Box::new(move |_event: Event| {
+                    let mut state = state.borrow_mut();
+                    if state.toggle_selection(i) {
+                        let is_selected = state.selected_indices.contains(&i);
+                        let class = if is_selected {
+                            "bubble selected"
+                        } else {
+                            "bubble"
+                        };
+                        bubble_ref.set_attribute("class", class).unwrap();
+
+                        if state.selected_indices.len() == 3 {
+                            let round_success = state.check_current_round();
+                            state.update_score(round_success);
+                            state.start_round();
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                bubble.add_event_listener_with_callback(
+                    "click",
+                    handler.as_ref().unchecked_ref(),
+                )?;
+                handler.forget();
+            }
+        }
+        Ok(())
     }
 
     fn render_bubbles(&self) -> Result<(), JsValue> {
@@ -72,34 +113,6 @@ impl Numeracy {
                         "bubble"
                     };
                     bubble.set_attribute("class", class)?;
-
-                    let state = self.state.clone();
-                    let bubble_ref = bubble.clone();
-                    let i = i as usize;
-                    let handler = Closure::wrap(Box::new(move |_event: Event| {
-                        let mut state = state.borrow_mut();
-                        if state.toggle_selection(i) {
-                            let is_selected = state.selected_indices.contains(&i);
-                            let class = if is_selected {
-                                "bubble selected"
-                            } else {
-                                "bubble"
-                            };
-                            bubble_ref.set_attribute("class", class).unwrap();
-
-                            if state.selected_indices.len() == 3 {
-                                let round_success = state.check_current_round();
-                                state.update_score(round_success);
-                                state.start_round();
-                            }
-                        }
-                    }) as Box<dyn FnMut(_)>);
-
-                    bubble.add_event_listener_with_callback(
-                        "click",
-                        handler.as_ref().unchecked_ref(),
-                    )?;
-                    handler.forget();
                 }
             }
         }
