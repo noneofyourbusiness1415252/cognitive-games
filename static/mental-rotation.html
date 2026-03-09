@@ -6,7 +6,7 @@
     <title>Mental Rotation - Cognitive Games</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@300..700&display=swap');
+        :root { --cell-size: calc(1em * sqrt(2)); }
         .game-container {
             display: flex;
             flex-direction: column;
@@ -16,16 +16,15 @@
         }
         .timer {
             font-size: 1.5rem;
+            text-align: center;
         }
         .grid {
             display: grid;
             gap: 0;
-            background: var(--bg-color);
         }
         .cell {
-            --size: calc(1em * sqrt(2));
-            width: var(--size);
-            height: var(--size);
+            width: var(--cell-size);
+            height: var(--cell-size);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -39,95 +38,52 @@
             pointer-events: auto;
             cursor: pointer;
         }
-        .rocket {
-            position: absolute;
-            font-size: 1.5rem;
-            left: -2.25rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-family: 'Noto Emoji', emoji, sans-serif;
-            color: var(--highlight-fg);
-        }
-        .earth {
-            position: absolute;
-            font-size: 1.5rem;
-            right: -2.25rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-family: 'Noto Emoji', emoji, sans-serif;
-            color: var(--highlight-fg);
+        .obstacle {
+            background: var(--bg-2);
+            pointer-events: none;
         }
         .arrow {
             display: inline-block;
             pointer-events: none;
             user-select: none;
         }
-        .pointing-right { transform: rotate(0deg); }
-        .pointing-down { transform: rotate(90deg); }
-        .pointing-left { transform: rotate(180deg); }
-        .pointing-up { transform: rotate(270deg); }
-        
-        /* Fix flipped states for all directions */
-        .flipped { transform: scaleX(-1); }
-        .flipped.pointing-right { transform: rotate(0deg) scaleX(-1); }
-        .flipped.pointing-down { transform: rotate(90deg) scaleX(-1); }
-        .flipped.pointing-left { transform: rotate(180deg) scaleX(-1); }
-        .flipped.pointing-up { transform: rotate(270deg) scaleX(-1); }
-        
-        /* Additional diagonal arrow classes */
-        .pointing-northeast { transform: rotate(315deg); }
-        .pointing-northwest { transform: rotate(225deg); }
-        .pointing-southeast { transform: rotate(45deg); }
-        .pointing-southwest { transform: rotate(135deg); }
-        
-        .flipped.pointing-northeast { transform: rotate(315deg) scaleX(-1); }
-        .flipped.pointing-northwest { transform: rotate(225deg) scaleX(-1); }
-        .flipped.pointing-southeast { transform: rotate(45deg) scaleX(-1); }
-        .flipped.pointing-southwest { transform: rotate(135deg) scaleX(-1); }
-        
+        .pointing-right    { transform: rotate(0deg); }
+        .pointing-down     { transform: rotate(90deg); }
+        .pointing-left     { transform: rotate(180deg); }
+        .pointing-up       { transform: rotate(270deg); }
+        .pointing-southeast{ transform: rotate(45deg); }
+        .pointing-southwest{ transform: rotate(135deg); }
+        .pointing-northwest{ transform: rotate(225deg); }
+        .pointing-northeast{ transform: rotate(315deg); }
         .grid-container {
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 3rem;  /* Original padding */
-            overflow: visible;  /* Original setting */
-            transition: none;  /* Original setting */
+            padding: 0 3rem;
+            overflow: visible;
         }
-        .grid-container.animating {
-            pointer-events: none;
-        }
-        .level {
+        .grid-container.animating { pointer-events: none; }
+        .rocket, .earth {
+            position: absolute;
             font-size: 1.5rem;
-            margin-bottom: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            user-select: none;
         }
-        @keyframes moveRocket {
-            from {
-                transform: translate(0, 0);
-            }
-            to {
-                transform: translate(100%, 0);
-            }
-        }
-
-        .rocket.moving {
-            animation: moveRocket 3s linear forwards;
-            animation-fill-mode: forwards;
-        }
-        
-        button#reset {
-            margin-top: 1rem;
+        .rocket { left: -2.25rem; }
+        .earth  { right: -2.25rem; }
+        .level  { font-size: 1.5rem; }
+        #stats  { font-size: 1rem; color: var(--text-color); }
+        #reset {
+            margin-top: 0.5rem;
             padding: 0.5rem 1rem;
             border: none;
             border-radius: 0.25rem;
-            background-color: var(--bg-2);
+            background: var(--bg-2);
             color: var(--text-color);
             cursor: pointer;
             font-size: 1rem;
-        }
-        
-        button#reset:hover {
-            background-color: var(--accent-color);
         }
     </style>
 </head>
@@ -140,6 +96,7 @@
             <div id="grid" class="grid"></div>
             <span class="earth">🌍</span>
         </div>
+        <div id="stats">Moves: 0  |  Rotations: 0  |  Reversals: 0</div>
         <button id="reset">Reset Level</button>
     </div>
     <script src="index.js"></script>

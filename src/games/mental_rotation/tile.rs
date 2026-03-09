@@ -2,124 +2,106 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
-    North,
-    South,
-    East,
-    West,
-    NorthEast,
-    NorthWest,
-    SouthEast,
-    SouthWest,
+    North, South, East, West,
+    NorthEast, NorthWest, SouthEast, SouthWest,
 }
 
 impl Direction {
+    pub fn rotate_cw(self) -> Self {
+        match self {
+            Self::North => Self::East, Self::East => Self::South,
+            Self::South => Self::West, Self::West => Self::North,
+            Self::NorthEast => Self::SouthEast, Self::SouthEast => Self::SouthWest,
+            Self::SouthWest => Self::NorthWest, Self::NorthWest => Self::NorthEast,
+        }
+    }
+
     pub fn reversed(self) -> Self {
         match self {
-            Direction::North => Direction::South,
-            Direction::South => Direction::North,
-            Direction::East => Direction::West,
-            Direction::West => Direction::East,
-            Direction::NorthEast => Direction::SouthWest,
-            Direction::NorthWest => Direction::SouthEast,
-            Direction::SouthEast => Direction::NorthWest,
-            Direction::SouthWest => Direction::NorthEast,
+            Self::North => Self::South, Self::South => Self::North,
+            Self::East => Self::West, Self::West => Self::East,
+            Self::NorthEast => Self::SouthWest, Self::SouthWest => Self::NorthEast,
+            Self::NorthWest => Self::SouthEast, Self::SouthEast => Self::NorthWest,
         }
     }
 
-    pub fn rotate_90(self) -> Self {
+    pub fn css_class(self) -> &'static str {
         match self {
-            Direction::North => Direction::East,
-            Direction::East => Direction::South,
-            Direction::South => Direction::West, 
-            Direction::West => Direction::North,
-            Direction::NorthEast => Direction::SouthEast,
-            Direction::SouthEast => Direction::SouthWest,
-            Direction::SouthWest => Direction::NorthWest,
-            Direction::NorthWest => Direction::NorthEast,
+            Self::East => "arrow pointing-right",
+            Self::South => "arrow pointing-down",
+            Self::West => "arrow pointing-left",
+            Self::North => "arrow pointing-up",
+            Self::SouthEast => "arrow pointing-southeast",
+            Self::SouthWest => "arrow pointing-southwest",
+            Self::NorthEast => "arrow pointing-northeast",
+            Self::NorthWest => "arrow pointing-northwest",
         }
     }
 
-    pub fn angle(self) -> f64 {
+    pub fn delta(self) -> Option<(i32, i32)> {
         match self {
-            Direction::North => 270.0,
-            Direction::South => 90.0,
-            Direction::East => 0.0,
-            Direction::West => 180.0,
-            Direction::NorthEast => 315.0,
-            Direction::NorthWest => 225.0,
-            Direction::SouthEast => 45.0,
-            Direction::SouthWest => 135.0,
+            Self::East => Some((1, 0)), Self::West => Some((-1, 0)),
+            Self::South => Some((0, 1)), Self::North => Some((0, -1)),
+            _ => None,
         }
     }
 
-    pub fn from_rotation(base_direction: Direction, rotation: i32, reversed: bool) -> Self {
-        let directions = [
-            Direction::East,
-            Direction::South,
-            Direction::West,
-            Direction::North,
-        ];
-        
-        let base_index = match base_direction {
-            Direction::East => 0,
-            Direction::South => 1,
-            Direction::West => 2,
-            Direction::North => 3,
-            _ => 0, // For diagonal directions, default to East
-        };
-        
-        // Calculate rotation index
-        let rotation_steps = (rotation / 90) as usize % 4;
-        let mut new_index = (base_index + rotation_steps) % 4;
-        
-        // Handle reversal (opposite direction)
-        if reversed {
-            new_index = (new_index + 2) % 4;
+    pub fn components(self) -> Option<(Direction, Direction)> {
+        match self {
+            Self::NorthEast => Some((Self::North, Self::East)),
+            Self::NorthWest => Some((Self::North, Self::West)),
+            Self::SouthEast => Some((Self::South, Self::East)),
+            Self::SouthWest => Some((Self::South, Self::West)),
+            _ => None,
         }
-        
-        directions[new_index]
+    }
+}
+
+pub fn direction_between(from: (usize, usize), to: (usize, usize)) -> Direction {
+    match (to.0 as i32 - from.0 as i32, to.1 as i32 - from.1 as i32) {
+        (1, 0) => Direction::East,  (-1, 0) => Direction::West,
+        (0, 1) => Direction::South, (0, -1) => Direction::North,
+        _ => Direction::East,
+    }
+}
+
+pub fn diagonal_for_turn(in_dir: Direction, out_dir: Direction) -> Direction {
+    match (in_dir, out_dir) {
+        (Direction::East, Direction::South) | (Direction::South, Direction::East) => Direction::SouthEast,
+        (Direction::East, Direction::North) | (Direction::North, Direction::East) => Direction::NorthEast,
+        (Direction::West, Direction::South) | (Direction::South, Direction::West) => Direction::SouthWest,
+        (Direction::West, Direction::North) | (Direction::North, Direction::West) => Direction::NorthWest,
+        _ => out_dir,
     }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Tile {
     pub cells: Vec<(usize, usize)>,
-    pub rotation: i32,  // Degrees
-    pub reversed: bool,
+    pub arrows: Vec<Direction>,
+    pub is_obstacle: bool,
 }
 
 impl Tile {
-    pub fn rotate(&mut self) {
-        self.rotation = (self.rotation + 90) % 360;
-        // Remove coordinate transformation - let CSS handle visual rotation
+    /// Compute cells after 90° CW rotation (top-left anchor preserved).
+    pub fn rotated_cells(&self) -> Vec<(usize, usize)> {
+        if self.cells.is_empty() { return vec![]; }
+        let min_x = self.cells.iter().map(|c| c.0).min().unwrap();
+        let min_y = self.cells.iter().map(|c| c.1).min().unwrap();
+        let max_y = self.cells.iter().map(|c| c.1).max().unwrap();
+        let h = max_y - min_y;
+        self.cells.iter().map(|&(x, y)| {
+            (min_x + h - (y - min_y), min_y + (x - min_x))
+        }).collect()
     }
 
-    pub fn reverse(&mut self) {
-        self.reversed = !self.reversed;
-        // Remove arrow reversal since we handle it in get_effective_direction
+    /// Physically rotate 90° CW: move cells and rotate arrows.
+    pub fn rotate_cw(&mut self) {
+        self.cells = self.rotated_cells();
+        for a in &mut self.arrows { *a = a.rotate_cw(); }
     }
 
-    pub fn get_effective_direction(&self) -> Direction {
-        // Calculate the effective direction based on rotation and reversal
-        // There are multiple combinations that can result in the same effective direction
-        
-        // Start with East as the base direction
-        let base_direction = Direction::East;
-        
-        // Apply rotation
-        let rotated = match self.rotation {
-            0 => base_direction,
-            90 => base_direction.rotate_90(),
-            180 => base_direction.rotate_90().rotate_90(),
-            270 => base_direction.rotate_90().rotate_90().rotate_90(),
-            _ => base_direction, // Default to East for invalid rotations
-        };
-        
-        // Apply reversal if needed
-        if self.reversed {
-            rotated.reversed()
-        } else {
-            rotated
-        }
+    pub fn reverse_arrows(&mut self) {
+        for a in &mut self.arrows { *a = a.reversed(); }
     }
 }
