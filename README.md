@@ -69,6 +69,24 @@ npm start
 The games will be accessible at:
 - Numeracy Game: http://localhost:80/numeracy.html
 - Maze Game: http://localhost:80/
+- **Mental Rotation: http://localhost:80/mental-rotation.html**
+
+## Playtesting Mental Rotation
+
+1. Run `npm start` and open **http://localhost:80/mental-rotation.html**.
+2. **Left-click** a shaded tile to rotate it 90° clockwise. If the rotation would
+   cause it to overlap another tile or go out of bounds, nothing happens.
+3. **Right-click** a tile to reverse the direction of all its arrows.
+4. **Goal:** arrange the tiles so that following the arrows continuously from 🚀
+   (left edge) leads to 🌍 (right edge).
+5. A **3-minute countdown** is displayed above the grid. If it expires, the same
+   level restarts from scratch.
+6. Press **Reset Level** to restore tiles to their initial scrambled state (timer
+   continues).
+7. On completion the rocket animates along the solved path and the next (larger)
+   level begins automatically.
+8. Progress is saved to `localStorage` – closing and reopening the tab resumes
+   where you left off.
 
 ## Building for Production
 

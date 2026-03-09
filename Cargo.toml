@@ -51,6 +51,9 @@ features = [
     "Text",
     "Animation",
     "KeyframeAnimationOptions",
+    "DomRect",
+    "CssStyleDeclaration",
+    "HtmlStyleElement",
 ]
 
 [dev-dependencies]

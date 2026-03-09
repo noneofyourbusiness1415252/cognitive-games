@@ -1,222 +1,148 @@
-use super::tile::{Tile, Direction};
+use std::collections::HashSet;
+use super::tile::{Tile, Direction, direction_between, diagonal_for_turn};
 use js_sys::Math;
 
-// Helper to generate random numbers
-fn random_usize(max: usize) -> usize {
-    (Math::random() * max as f64) as usize
+fn rand(max: usize) -> usize {
+    if max == 0 { 0 } else { (Math::random() * max as f64) as usize }
 }
 
-// Random rotation: 0, 90, 180, or 270 degrees
-fn random_rotation() -> i32 {
-    let rand = random_usize(4);
-    match rand {
-        0 => 0,
-        1 => 90,
-        2 => 180,
-        _ => 270,
-    }
+pub fn generate_level(level: usize) -> (Vec<Tile>, Vec<(usize, usize)>, (usize, usize), (usize, usize)) {
+    let n = level.max(1);
+    let start_y = if n > 1 { rand(n) } else { 0 };
+    let end_y   = if n > 1 { rand(n) } else { 0 };
+    let start = (0, start_y);
+    let end   = (n - 1, end_y);
+
+    let path = generate_path(start, end, n);
+    let mut tiles = build_tiles(&path, n);
+    add_obstacles(&mut tiles, &path.iter().cloned().collect(), n);
+    scramble(&mut tiles, n);
+
+    (tiles, path, start, end)
 }
 
-// Random boolean for reversing tile directions
-fn random_bool() -> bool {
-    Math::random() > 0.5
-}
+/// Generate a winding O(n)-length path from start to end.
+fn generate_path(start: (usize, usize), end: (usize, usize), n: usize) -> Vec<(usize, usize)> {
+    if n == 1 { return vec![start]; }
+    let mut path = vec![start];
+    let mut pos = start;
+    let mut visited: HashSet<(usize, usize)> = [start].into();
 
-pub fn generate_level(level: usize) -> (Vec<Tile>, Vec<usize>, (usize, usize), (usize, usize)) {
-    // Grid size is determined by level (no minimum size)
-    let grid_size = level;
-    
-    // For very small grids (1-2), use fixed positions
-    let (start_y, end_y) = if grid_size < 3 {
-        (0, 0) // For tiny grids, just use a straight line
-    } else {
-        // Randomly select start and end Y positions
-        (random_usize(grid_size), random_usize(grid_size))
-    };
-    
-    // Define start and end positions (start on left edge, end on right edge)
-    let start_pos = (0, start_y);
-    let end_pos = (grid_size.saturating_sub(1), end_y); // Use saturating_sub for safety with tiny grids
-    
-    // Create a path from start to end
-    let path = generate_path(start_pos, end_pos, grid_size);
-    
-    // Generate tiles along the path
-    let (tiles, solution_path_tiles) = generate_tiles_from_path(path, grid_size);
-    
-    // Randomize tile rotations and reversals to increase difficulty
-    let tiles = randomize_tiles(tiles, solution_path_tiles.clone());
-    
-    (tiles, solution_path_tiles, start_pos, end_pos)
-}
-
-fn generate_path(start: (usize, usize), end: (usize, usize), grid_size: usize) -> Vec<(usize, usize)> {
-    let mut path = Vec::new();
-    path.push(start);
-    
-    let mut current = start;
-    
-    // Create a path that first moves horizontally to the last column
-    while current.0 < end.0 {
-        // Always move east (right)
-        let next_x = current.0 + 1;
-        
-        // Occasionally adjust Y position to make the path more interesting
-        let mut next_y = current.1;
-        
-        // After the first move, potentially adjust Y to move toward the end Y position
-        if current.0 > start.0 && current.0 < end.0 - 1 {
-            if Math::random() < 0.3 {
-                // Move Y toward end position
-                if next_y < end.1 {
-                    next_y += 1;
-                } else if next_y > end.1 {
-                    next_y -= 1;
-                }
-            }
-        }
-        
-        // Make sure we stay within grid bounds
-        next_y = next_y.min(grid_size - 1);
-        
-        // If this is the final horizontal move, ensure Y matches the end position
-        if next_x == end.0 {
-            next_y = end.1;
-        }
-        
-        let next = (next_x, next_y);
+    while pos.0 < end.0 {
+        let remaining_x = end.0 - pos.0;
+        let dy: i32 = end.1 as i32 - pos.1 as i32;
+        // Sometimes step vertically (if more than 1 column to go and path not yet aligned)
+        let step_vert = dy != 0 && remaining_x > 1 && Math::random() < 0.45;
+        let next = if step_vert {
+            let ny = (pos.1 as i32 + dy.signum()) as usize;
+            let candidate = (pos.0, ny);
+            if ny < n && !visited.contains(&candidate) { candidate }
+            else { (pos.0 + 1, pos.1) }
+        } else {
+            (pos.0 + 1, pos.1)
+        };
+        let next = if next.0 == end.0 { (end.0, next.1) } else { next };
+        visited.insert(next);
         path.push(next);
-        current = next;
+        pos = next;
     }
-    
-    // Make sure the last point matches the end position exactly
-    if let Some(&last) = path.last() {
-        if last != end {
-            path.pop();
-            path.push(end);
-        }
+    // Adjust final Y to reach end
+    while pos.1 != end.1 {
+        let dy: i32 = if pos.1 < end.1 { 1 } else { -1 };
+        let np = (pos.0, (pos.1 as i32 + dy) as usize);
+        if visited.contains(&np) { break; }
+        visited.insert(np);
+        path.push(np);
+        pos = np;
     }
-    
+    if path.last().copied() != Some(end) && !visited.contains(&end) {
+        path.push(end);
+    }
     path
 }
 
-fn generate_tiles_from_path(path: Vec<(usize, usize)>, grid_size: usize) -> (Vec<Tile>, Vec<usize>) {
+/// Create tiles from the path (1-3 cells each) with per-cell arrows.
+fn build_tiles(path: &[(usize, usize)], _n: usize) -> Vec<Tile> {
     let mut tiles = Vec::new();
-    let mut solution_path_tiles = Vec::new();
-    let mut path_cells = path.clone();
-    
-    // Process the path to create tiles
-    while !path_cells.is_empty() {
-        // Determine the size of this polyomino tile (1-3 cells)
-        let tile_size = if path_cells.len() >= 3 {
-            match random_usize(3) {
-                0 => 1,
-                1 => 2,
-                _ => 3,
-            }
-        } else if path_cells.len() == 2 {
-            random_usize(2) + 1
-        } else {
-            1
-        };
-        
-        // Take cells for this tile
-        let mut tile_cells = Vec::new();
-        for _ in 0..tile_size {
-            if let Some(cell) = path_cells.first() {
-                tile_cells.push(*cell);
-                path_cells.remove(0);
-            } else {
-                break;
-            }
-        }
-        
-        if !tile_cells.is_empty() {
-            // Create a new tile
-            let tile = Tile {
-                cells: tile_cells,
-                rotation: 0,
-                reversed: false,
-            };
-            
-            // Add to the tiles list
-            tiles.push(tile);
-            
-            // This tile is part of the solution path
-            solution_path_tiles.push(tiles.len() - 1);
-        }
+    let mut i = 0;
+    while i < path.len() {
+        let remaining = path.len() - i;
+        let size = if remaining >= 3 { match rand(3) { 0 => 1, 1 => 2, _ => 3 } }
+                   else if remaining == 2 { if rand(2) == 0 { 1 } else { 2 } }
+                   else { 1 };
+        let seg = &path[i..i + size];
+        let arrows = assign_arrows(seg, path, i + size);
+        tiles.push(Tile { cells: seg.to_vec(), arrows, is_obstacle: false });
+        i += size;
     }
-    
-    // Add some additional non-path tiles to make the puzzle more challenging
-    add_distractor_tiles(&mut tiles, &path, grid_size);
-    
-    (tiles, solution_path_tiles)
-}
-
-fn add_distractor_tiles(tiles: &mut Vec<Tile>, path: &[(usize, usize)], grid_size: usize) {
-    // Add "distractor" tiles that aren't part of the solution path
-    // The number of distractors scales with level difficulty
-    let num_distractors = (grid_size / 2).max(1);
-    
-    let mut occupied_cells: Vec<(usize, usize)> = path.to_vec();
-    for tile in tiles.iter() {
-        occupied_cells.extend(&tile.cells);
-    }
-    
-    for _ in 0..num_distractors {
-        // Try to place a distractor tile in an empty cell
-        for _ in 0..10 { // Limit attempts to avoid infinite loops
-            let x = random_usize(grid_size);
-            let y = random_usize(grid_size);
-            
-            if !occupied_cells.contains(&(x, y)) {
-                let mut tile_cells = vec![(x, y)];
-                occupied_cells.push((x, y));
-                
-                // Add more cells to make a multi-cell distractor (50% chance)
-                if Math::random() < 0.5 && x + 1 < grid_size && !occupied_cells.contains(&(x + 1, y)) {
-                    tile_cells.push((x + 1, y));
-                    occupied_cells.push((x + 1, y));
-                }
-                
-                let tile = Tile {
-                    cells: tile_cells,
-                    rotation: 0,
-                    reversed: false,
-                };
-                
-                tiles.push(tile);
-                break;
-            }
-        }
-    }
-}
-
-fn randomize_tiles(mut tiles: Vec<Tile>, solution_path_tiles: Vec<usize>) -> Vec<Tile> {
-    // Randomize rotations and reversals for maximum challenge
-    for i in 0..tiles.len() {
-        // Make sure solution path tiles require manipulation
-        // This ensures we maximize the difference between best and worst case
-        if solution_path_tiles.contains(&i) {
-            // Always require some manipulation for solution tiles
-            if random_bool() {
-                // Apply rotation
-                let rotation = match random_usize(3) {
-                    0 => 90,
-                    1 => 180,
-                    _ => 270,
-                };
-                tiles[i].rotation = rotation;
-            } else {
-                // Apply reversal
-                tiles[i].reversed = true;
-            }
-        } else {
-            // For non-solution tiles, randomize completely
-            tiles[i].rotation = random_rotation();
-            tiles[i].reversed = random_bool();
-        }
-    }
-    
     tiles
+}
+
+/// Assign per-cell arrows for a tile covering path[start..start+seg.len()].
+/// `next_start` is the index of the first cell of the next tile in path.
+fn assign_arrows(seg: &[(usize, usize)], path: &[(usize, usize)], next_start: usize) -> Vec<Direction> {
+    let len = seg.len();
+    (0..len).map(|j| {
+        if len == 1 {
+            // Single cell: point toward next tile's first cell, or East if last
+            if next_start < path.len() { direction_between(seg[0], path[next_start]) }
+            else { Direction::East }
+        } else if j == len - 1 {
+            // Endpoint: point toward next tile or East if last in path
+            if next_start < path.len() { direction_between(seg[j], path[next_start]) }
+            else { Direction::East }
+        } else if j == 0 {
+            // Endpoint: point toward next cell in segment
+            direction_between(seg[0], seg[1])
+        } else {
+            // Interior junction: diagonal if turning, otherwise straight
+            let in_d  = direction_between(seg[j - 1], seg[j]);
+            let out_d = direction_between(seg[j], seg[j + 1]);
+            if in_d == out_d { out_d } else { diagonal_for_turn(in_d, out_d) }
+        }
+    }).collect()
+}
+
+/// Add obstacle cells (same visual as tiles, no arrows, blocks rotation).
+fn add_obstacles(tiles: &mut Vec<Tile>, path_cells: &HashSet<(usize, usize)>, n: usize) {
+    if n < 3 { return; }
+    let mut occupied: HashSet<(usize, usize)> = path_cells.clone();
+    for t in tiles.iter() { for &c in &t.cells { occupied.insert(c); } }
+    for _ in 0..n / 3 {
+        for _ in 0..20 {
+            let x = rand(n); let y = rand(n);
+            if !occupied.contains(&(x, y)) {
+                occupied.insert((x, y));
+                tiles.push(Tile { cells: vec![(x, y)], arrows: vec![], is_obstacle: true });
+                break;
+            }
+        }
+    }
+}
+
+/// Scramble tiles: apply 1-3 valid CW rotations and a possible reversal.
+/// Uses O(n) time with HashSet for collision checking.
+fn scramble(tiles: &mut Vec<Tile>, n: usize) {
+    // Build occupied set
+    let mut occupied: HashSet<(usize, usize)> = tiles.iter()
+        .flat_map(|t| t.cells.iter().cloned()).collect();
+
+    for idx in 0..tiles.len() {
+        if tiles[idx].is_obstacle { continue; }
+        let rots = rand(3) + 1; // 1, 2 or 3 rotations → not solution state
+        for _ in 0..rots {
+            let rotated = tiles[idx].rotated_cells();
+            let ok = rotated.iter().all(|&(x, y)| x < n && y < n)
+                && rotated.iter().all(|c| {
+                    !tiles[..idx].iter().chain(tiles[idx+1..].iter())
+                        .any(|t| t.cells.contains(c))
+                });
+            if ok {
+                for &c in &tiles[idx].cells { occupied.remove(&c); }
+                tiles[idx].rotate_cw();
+                for &c in &tiles[idx].cells { occupied.insert(c); }
+            }
+        }
+        if Math::random() < 0.5 { tiles[idx].reverse_arrows(); }
+    }
 }
