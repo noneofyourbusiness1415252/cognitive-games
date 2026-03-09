@@ -121,27 +121,20 @@ fn add_obstacles(tiles: &mut Vec<Tile>, path_cells: &HashSet<(usize, usize)>, n:
 }
 
 /// Scramble tiles: apply 1-3 valid CW rotations and a possible reversal.
-/// Uses O(n) time with HashSet for collision checking.
+/// O(n) total: tile sizes and rotation counts are bounded constants.
 fn scramble(tiles: &mut Vec<Tile>, n: usize) {
-    // Build occupied set
-    let mut occupied: HashSet<(usize, usize)> = tiles.iter()
-        .flat_map(|t| t.cells.iter().cloned()).collect();
-
     for idx in 0..tiles.len() {
         if tiles[idx].is_obstacle { continue; }
-        let rots = rand(3) + 1; // 1, 2 or 3 rotations → not solution state
+        let rots = rand(3) + 1; // 1–3 CW rotations: scrambles arrows & possibly cells
         for _ in 0..rots {
             let rotated = tiles[idx].rotated_cells();
             let ok = rotated.iter().all(|&(x, y)| x < n && y < n)
                 && rotated.iter().all(|c| {
-                    !tiles[..idx].iter().chain(tiles[idx+1..].iter())
-                        .any(|t| t.cells.contains(c))
+                    tiles.iter().enumerate()
+                        .filter(|(i, _)| *i != idx)
+                        .all(|(_, t)| !t.cells.contains(c))
                 });
-            if ok {
-                for &c in &tiles[idx].cells { occupied.remove(&c); }
-                tiles[idx].rotate_cw();
-                for &c in &tiles[idx].cells { occupied.insert(c); }
-            }
+            if ok { tiles[idx].rotate_cw(); }
         }
         if Math::random() < 0.5 { tiles[idx].reverse_arrows(); }
     }

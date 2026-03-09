@@ -3,7 +3,7 @@ use web_sys::{Document, HtmlElement};
 
 /// Animate the rocket along `path` cells.
 /// Uses CSS @keyframes injected into a <style> tag, so no JS is needed.
-pub fn launch_rocket(document: &Document, path: &[(usize, usize)], start: (usize, usize)) {
+pub fn launch_rocket(document: &Document, path: &[(usize, usize)], _start: (usize, usize)) {
     if path.is_empty() { return; }
 
     // Get bounding rects via the grid and rocket elements
@@ -19,12 +19,8 @@ pub fn launch_rocket(document: &Document, path: &[(usize, usize)], start: (usize
     let grid_rect   = grid.get_bounding_client_rect();
     let rocket_rect = rocket_el.get_bounding_client_rect();
 
-    let cell_w = grid_rect.width() / grid.client_width().max(1) as f64;
-    // Use clientWidth/offsetWidth trick: cell_w = gridWidth / cols
-    // More reliably compute from grid width
     let n_cols = path.iter().map(|c| c.0).max().unwrap_or(0) + 1;
     let cell_size = if n_cols > 0 { grid_rect.width() / n_cols as f64 } else { grid_rect.width().max(1.0) };
-    let _ = cell_w; // silence unused
 
     let rocket_cx = rocket_rect.left() + rocket_rect.width() / 2.0;
     let rocket_cy = rocket_rect.top()  + rocket_rect.height() / 2.0;
@@ -36,8 +32,7 @@ pub fn launch_rocket(document: &Document, path: &[(usize, usize)], start: (usize
         // Percentage: path cells occupy 0–85 %, Earth occupies 100 %
         let pct = if total > 1 { i as f64 / (total - 1) as f64 * 85.0 } else { 0.0 };
         let cell_cx = grid_rect.left() + (px as f64 + 0.5) * cell_size;
-        let cell_cy = grid_rect.top()  + (start.1 as f64 + 0.5) * cell_size
-                    + (py as f64 - start.1 as f64) * cell_size;
+        let cell_cy = grid_rect.top()  + (py as f64 + 0.5) * cell_size;
         let dx = cell_cx - rocket_cx;
         let dy = cell_cy - rocket_cy;
         css.push_str(&format!("  {:.1}%{{transform:translate({:.1}px,{:.1}px)}}\n", pct, dx, dy));

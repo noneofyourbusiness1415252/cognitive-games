@@ -34,7 +34,7 @@ pub struct MentalRotation {
     last_click:     f64,
 }
 
-// ── WASM-exported methods ────────────────────────────────────────────────────
+// ── WASM-exported methods ─────────────────────────────────────────────────────
 #[wasm_bindgen]
 impl MentalRotation {
     #[wasm_bindgen(constructor)]
@@ -61,7 +61,8 @@ impl MentalRotation {
         let window = web_sys::window().unwrap();
         let doc = window.document().unwrap();
         update_level_display(&doc, self.level);
-        self.render_grid(&doc)?;
+        self.rebuild_cells(&doc)?;
+        self.attach_handlers(&doc)?;
         self.setup_timer(&window)?;
         self.setup_reset(&doc)?;
         if let Ok(mut lock) = GAME.try_lock() {
@@ -97,23 +98,16 @@ impl MentalRotation {
     #[must_use] pub fn grid_size(&self) -> usize { self.grid_size }
 }
 
-// ── Internal methods ─────────────────────────────────────────────────────────
+// ── Internal methods ──────────────────────────────────────────────────────────
 impl MentalRotation {
 
-    fn render_grid(&self, doc: &Document) -> Result<(), JsValue> {
+    /// Rebuild grid cells only (no event-listener changes).
+    fn rebuild_cells(&self, doc: &Document) -> Result<(), JsValue> {
         let grid = doc.get_element_by_id("grid").unwrap();
         while let Some(c) = grid.first_child() { grid.remove_child(&c)?; }
 
         grid.set_attribute("style", &format!(
             "grid-template-columns: repeat({}, calc(1em * sqrt(2)))", self.grid_size))?;
-
-        {
-            let cb = Closure::wrap(Box::new(|e: Event| {
-                e.prevent_default(); e.stop_propagation();
-            }) as Box<dyn FnMut(Event)>);
-            grid.add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref())?;
-            cb.forget();
-        }
 
         for y in 0..self.grid_size {
             for x in 0..self.grid_size {
@@ -121,7 +115,6 @@ impl MentalRotation {
                 cell.set_attribute("data-col", &x.to_string())?;
                 cell.set_attribute("data-row", &y.to_string())?;
                 cell.set_class_name("cell");
-
                 if let Some((ti, ci)) = self.tile_at(x, y) {
                     let t = &self.tiles[ti];
                     if t.is_obstacle {
@@ -139,6 +132,7 @@ impl MentalRotation {
             }
         }
 
+        // Refresh start/end icons
         for sel in &[".rocket", ".earth"] {
             if let Some(e) = doc.query_selector(sel)?.as_ref() { e.remove(); }
         }
@@ -155,6 +149,21 @@ impl MentalRotation {
         }
         container.append_child(&rocket)?;
         container.append_child(&earth)?;
+        Ok(())
+    }
+
+    /// Attach click handler to grid once (called only from start()).
+    fn attach_handlers(&self, doc: &Document) -> Result<(), JsValue> {
+        let grid = doc.get_element_by_id("grid").unwrap();
+
+        // Prevent context menu
+        {
+            let cb = Closure::wrap(Box::new(|e: Event| {
+                e.prevent_default(); e.stop_propagation();
+            }) as Box<dyn FnMut(Event)>);
+            grid.add_event_listener_with_callback("contextmenu", cb.as_ref().unchecked_ref())?;
+            cb.forget();
+        }
 
         let click_cb = Closure::wrap(Box::new(move |e: MouseEvent| {
             e.prevent_default(); e.stop_propagation();
@@ -175,12 +184,19 @@ impl MentalRotation {
                     if now - game.last_click < 100.0 { *lock = Some(game); return; }
                     game.last_click = now;
 
+                    let old_cells = game.tiles.get(idx)
+                        .map(|t| t.cells.clone()).unwrap_or_default();
+
                     if e.button() == 0 { game.do_rotate(idx); }
                     else if e.button() == 2 { game.do_reverse(idx); }
 
                     if let Some(window) = web_sys::window() {
                         if let Some(doc) = window.document() {
-                            game.refresh_arrows(&doc, idx);
+                            if e.button() == 0 {
+                                game.update_tile_dom(&doc, idx, &old_cells);
+                            } else {
+                                game.update_arrows_dom(&doc, idx);
+                            }
                             update_stats(&doc, game.moves, game.rotations, game.reversals);
                             if let Some(path) = game.winning_path() {
                                 animation::launch_rocket(&doc, &path, game.start_pos);
@@ -202,7 +218,38 @@ impl MentalRotation {
         Ok(())
     }
 
-    fn refresh_arrows(&self, doc: &Document, ti: usize) {
+    /// Update DOM after a physical rotation (cells moved, arrows rotated).
+    fn update_tile_dom(&self, doc: &Document, ti: usize, old_cells: &[(usize, usize)]) {
+        // Clear old positions
+        for &(x, y) in old_cells {
+            let sel = format!(".cell[data-col='{x}'][data-row='{y}']");
+            if let Some(cell) = doc.query_selector(&sel).ok().flatten() {
+                cell.set_class_name("cell");
+                let _ = cell.remove_attribute("data-tile");
+                while let Some(c) = cell.first_child() { let _ = cell.remove_child(&c); }
+            }
+        }
+        // Fill new positions
+        if let Some(tile) = self.tiles.get(ti) {
+            for (ci, &(x, y)) in tile.cells.iter().enumerate() {
+                let sel = format!(".cell[data-col='{x}'][data-row='{y}']");
+                if let Some(cell) = doc.query_selector(&sel).ok().flatten() {
+                    cell.set_class_name("cell tile");
+                    let _ = cell.set_attribute("data-tile", &ti.to_string());
+                    if let Ok(arrow) = doc.create_element("span") {
+                        if let Some(&a) = tile.arrows.get(ci) {
+                            arrow.set_class_name(a.css_class());
+                            arrow.set_text_content(Some("➔"));
+                            let _ = cell.append_child(&arrow);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Update DOM after arrow reversal (only CSS classes change).
+    fn update_arrows_dom(&self, doc: &Document, ti: usize) {
         if let Some(tile) = self.tiles.get(ti) {
             for (ci, &(x, y)) in tile.cells.iter().enumerate() {
                 let sel = format!(".cell[data-col='{x}'][data-row='{y}'] .arrow");
@@ -233,7 +280,7 @@ impl MentalRotation {
 
     fn do_reverse(&mut self, ti: usize) {
         if let Some(t) = self.tiles.get_mut(ti) {
-            t.reverse_arrows(); self.moves += 1; self.reversals += 1;
+            if !t.is_obstacle { t.reverse_arrows(); self.moves += 1; self.reversals += 1; }
         }
     }
 
@@ -244,12 +291,12 @@ impl MentalRotation {
         })
     }
 
-    /// Follow arrows from start_pos; return cell sequence if path reaches end_pos (East exit).
+    /// Follow arrows from start_pos; return path cells if end_pos reached with East exit.
     fn winning_path(&self) -> Option<Vec<(usize, usize)>> {
-        let mut pos = self.start_pos;
+        let mut pos    = self.start_pos;
         let mut travel = Direction::East;
-        let mut path = vec![pos];
-        let limit = self.grid_size * self.grid_size + 2;
+        let mut path   = vec![pos];
+        let limit      = self.grid_size * self.grid_size + 2;
 
         for _ in 0..limit {
             let (ti, ci) = self.tile_at(pos.0, pos.1)?;
@@ -276,7 +323,7 @@ impl MentalRotation {
             if nx < 0 || ny < 0 { return None; }
             let next = (nx as usize, ny as usize);
             if next.0 >= self.grid_size || next.1 >= self.grid_size { return None; }
-            if path.contains(&next) { return None; }
+            if path.contains(&next) { return None; } // cycle guard
 
             path.push(next);
             travel = exit;
@@ -290,18 +337,19 @@ impl MentalRotation {
     }
 
     fn setup_reset(&self, doc: &Document) -> Result<(), JsValue> {
+        // Remove old listeners by replacing the button
         if let Some(btn) = doc.get_element_by_id("reset") {
             let cb = Closure::wrap(Box::new(move |_: Event| {
                 if let Ok(mut lock) = GAME.try_lock() {
                     if let Some(mut g) = lock.take() {
                         g.tiles = g.initial_tiles.clone();
                         g.moves = 0; g.rotations = 0; g.reversals = 0;
-                        *lock = Some(g.clone());
                         if let Some(doc) = web_sys::window().and_then(|w| w.document()) {
-                            let _ = g.render_grid(&doc);
+                            let _ = g.rebuild_cells(&doc);
                             update_stats(&doc, 0, 0, 0);
                         }
                         g.save_state();
+                        *lock = Some(g);
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
@@ -312,7 +360,7 @@ impl MentalRotation {
     }
 }
 
-// ── Module helpers ───────────────────────────────────────────────────────────
+// ── Module helpers ────────────────────────────────────────────────────────────
 
 fn update_level_display(doc: &Document, level: usize) {
     if let Some(el) = doc.query_selector(".level").ok().flatten() {
